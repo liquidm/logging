@@ -184,7 +184,7 @@ module Madvertise
       # to figure out where in the source code a message has been produced.
       def called_from
         location = caller.detect('unknown:0') do |line|
-          line.index(File.basename(__FILE__)).nil?
+          line.match(/(improved_logger|multi_logger)\.rb/).nil?
         end
 
         file, num, discard = location.split(':')
