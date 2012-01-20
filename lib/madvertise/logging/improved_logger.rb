@@ -3,11 +3,21 @@ require 'stringio'
 
 module Madvertise
   module Logging
+
+    ##
+    # ImprovedLogger is an enhanced version of DaemonKits AbstractLogger class
+    # with token support, buffer backend and more.
+    #
     class ImprovedLogger
 
+      # Write a copy of all log messages to STDOUT.
       attr_accessor :copy_to_stdout
-      attr_accessor :transaction_token
+
+      # Program name prefix. Used as ident for syslog backends.
       attr_accessor :progname
+
+      # Arbitrary token to prefix log messages with.
+      attr_accessor :token
 
       @severities = {
         :debug   => Logger::DEBUG,
@@ -21,14 +31,125 @@ module Madvertise
       @silencer = true
 
       class << self
+        # Hash of Symbol/Fixnum pairs to map Logger levels.
         attr_reader :severities
+
+        # Enable/disable the silencer on a global basis. Useful for debugging
+        # otherwise silenced code blocks.
         attr_accessor :silencer
       end
 
       def initialize(logfile = nil, progname = nil)
         @copy_to_stdout = false
         @progname = progname || File.basename($0)
-        self.logger = logfile || STDERR
+        self.logger = logfile
+      end
+
+      # Get the backend logger.
+      #
+      # @return [Logger] The currently active backend logger object.
+      def logger
+        @logger ||= create_backend
+      end
+
+      # Set a different backend.
+      #
+      # @param [Symbol, String, Logger] value  The new logger backend. Either a
+      #   Logger object, a String containing the logfile path or a Symbol to
+      #   create a default backend for :syslog or :buffer
+      # @return [Logger] The newly created backend logger object.
+      def logger=(value)
+        @logger.close rescue nil
+        @logfile = value.is_a?(String) ? value : nil
+        @backend = value.is_a?(Symbol) ? value : :logger
+        @logger = value.is_a?(Logger) ? value : create_backend
+      end
+
+      # Close any connections/descriptors that may have been opened by the
+      # current backend.
+      def close
+        logger.close rescue nil
+        @logger = nil
+      end
+
+      # Retrieve the current buffer in case this instance is a buffered logger.
+      #
+      # @return [String] Contents of the buffer.
+      def buffer
+        @logfile.string if @backend == :buffer
+      end
+
+      # Get the current logging level.
+      #
+      # @return [Symbol] Current logging level.
+      def level
+        self.class.severities.invert[@logger.level]
+      end
+
+      # Set the logging level.
+      #
+      # @param [Symbol, Fixnum] level  New level as Symbol or Fixnum from Logger class.
+      # @return [Fixnum] New level converted to Fixnum from Logger class.
+      def level=(level)
+        level = level.is_a?(Symbol) ? self.class.severities[level] : level
+        logger.level = level
+      end
+
+      # Log a debug level message.
+      def debug(msg)
+        add(:debug, msg)
+      end
+
+      # Log an info level message.
+      def info(msg)
+        add(:info, msg)
+      end
+
+      # Log a warning level message.
+      def warn(msg)
+        add(:warn, msg)
+      end
+
+      # Log an error level message.
+      def error(msg)
+        add(:error, msg)
+      end
+
+      # Log a fatal level message.
+      def fatal(msg)
+        add(:fatal, msg)
+      end
+
+      # Log a message with unknown level.
+      def unknown(msg)
+        add(:unknown, msg)
+      end
+
+      # Log an exception with error level.
+      #
+      # @param [Exception, String] exc  The exception to log. If exc is a
+      #   String no backtrace will be generated.
+      def exception(exc)
+        if exc.is_a?(::Exception)
+          message = "EXCEPTION: #{exc.message}: #{clean_trace(exc.backtrace)}"
+        else
+          message = exc
+        end
+        add(:error, message, true)
+      end
+
+      # Save the current token and associate it with obj#object_id.
+      def save_token(obj)
+        if @token
+          @tokens ||= {}
+          @tokens[obj.object_id] = @token
+        end
+      end
+
+      # Restore the token that has been associated with obj#object_id.
+      def restore_token(obj)
+        @tokens ||= {}
+        @token = @tokens.delete(obj.object_id)
       end
 
       # Silence the logger for the duration of the block.
@@ -45,193 +166,76 @@ module Madvertise
         end
       end
 
-      def debug(msg)
-        add(:debug, msg)
-      end
-
-      def debug?
-        self.level == :debug
-      end
-
-      def info(msg)
-        add(:info, msg)
-      end
-
-      def info?
-        self.level == :info
-      end
-
-      def warn(msg)
-        add(:warn, msg)
-      end
-
-      def warn?
-        self.level == :warn
-      end
-
-      def error(msg)
-        add(:error, msg)
-      end
-
-      def error?
-        self.level == :error
-      end
-
-      def fatal(msg)
-        add(:fatal, msg)
-      end
-
-      def fatal?
-        self.level == :fatal
-      end
-
-      def unknown(msg)
-        add(:unknown, msg)
-      end
-
-      def unknown?
-        self.level == :unknown
-      end
-
-      def exception(e)
-        if e.is_a?(::Exception)
-          message = "EXCEPTION: #{e.message}: #{clean_trace(e.backtrace)}"
-        else
-          message = e
-        end
-        add(:error, message, true)
-      end
-
-      def add(severity, message, skip_caller = false)
-        message = "#{called(caller)}: #{message}" unless skip_caller
-        message = "[#{@transaction_token}] #{message}" if @transaction_token
-
-        self.logger.add(self.class.severities[severity]) { message }
-
-        STDOUT.puts(message) if self.copy_to_stdout && self.class.severities[severity] >= self.logger.level
-      end
-
-      def level
-        self.class.severities.invert[@logger.level]
-      end
-
-      def level=(level)
-        level = (Symbol === level ? self.class.severities[level] : level)
-        self.logger.level = level
-      end
-
-      def new_transaction(v)
-        @transaction_token = v
-      end
-
-      def end_transaction
-        @transaction_token = nil
-      end
-
-      def save_transaction(obj)
-        if @transaction_token && obj
-          @transactions ||= {}
-          @transactions[obj.object_id] = @transaction_token
-        end
-      end
-
-      def restore_transaction(obj)
-        @transactions ||= {}
-        @transaction_token = @transactions.delete(obj.object_id) if obj
-      end
-
-      def logger
-        @logger ||= create_logger
-      end
-
-      def logger=(value)
-        @logger.close rescue nil
-
-        if value.is_a?(Logger)
-          @backend = :logger
-          @logger = value
-        elsif value.is_a?(Symbol)
-          @backend = value
-          @logger = create_logger
-        else
-          @backend = :logger
-          @logfile = value
-          @logger = create_logger
-        end
-      end
-
+      # Remove references to the madvertise-logging gem from exception
+      # backtraces.
+      #
+      # @private
       def clean_trace(trace)
-        trace = trace.map { |l| l.gsub(ROOT, '') }
-        trace = trace.reject { |l| l =~ /gems\/madvertise-logging/ }
-        trace = trace.reject { |l| l =~ /vendor\/madvertise-logging/ }
-        trace
-      end
-
-      def close
-        case @backend
-        when :logger
-          self.logger.close
-          @logger = nil
-        end
-      end
-
-      def buffer
-        if @backend == :buffer && @buffer
-          @buffer.string
+        trace.map do |line|
+          line.gsub(ROOT, '')
+        end.reject do |line|
+          line =~ /(gems|vendor)\/madvertise-logging/
         end
       end
 
       private
 
-      def called(trace)
-        l = trace.detect('unknown:0') do |l|
-          l.index(File.basename(__FILE__)).nil?
+      # Return the first callee outside the madvertise-logging gem. Used in add
+      # to figure out where in the source code a message has been produced.
+      def called_from
+        location = caller.detect('unknown:0') do |line|
+          line.index(File.basename(__FILE__)).nil?
         end
 
-        file, num, _ = l.split(':')
+        file, num, discard = location.split(':')
         [ File.basename(file), num ].join(':')
       end
 
-      def create_logger
+      def add(severity, message, skip_caller = false)
+        severity = self.class.severities[severity]
+        message = "#{called_from}: #{message}" unless skip_caller
+        message = "[#{@token}] #{message}" if @token
+
+        logger.add(severity) { message }
+
+        STDOUT.puts(message) if self.copy_to_stdout && severity >= @logger.level
+      end
+
+      def create_backend
         case @backend
         when :buffer
-          create_buffering_logger
+          create_buffering_backend
         when :syslog
-          create_syslog_logger
+          create_syslog_backend
         else
-          create_standard_logger
+          create_standard_backend
         end
       end
 
-      def create_buffering_logger
-        @buffer = StringIO.new
-        Logger.new(@buffer).tap do |l|
-          l.formatter = Formatter.new
-          l.progname = progname
+      def create_buffering_backend
+        @logfile = StringIO.new
+        create_logger
+      end
+
+      def create_standard_backend
+        begin
+          FileUtils.mkdir_p(File.dirname(@logfile))
+        rescue
+          STDERR.puts "#{@logfile} not writable, using STDERR for logging" if @logfile
+          @logfile = STDERR
+        end
+
+        create_logger
+      end
+
+      def create_logger
+        Logger.new(@logfile).tap do |logger|
+          logger.formatter = Formatter.new
+          logger.progname = progname
         end
       end
 
-      def create_standard_logger
-        @logfile ||= STDERR
-
-        if @logfile.is_a?(String)
-          logdir = File.dirname(@logfile)
-
-          begin
-            FileUtils.mkdir_p(logdir)
-          rescue
-            STDERR.puts "#{logdir} not writable, using STDERR for logging"
-            @logfile = STDERR
-          end
-        end
-
-        Logger.new(@logfile).tap do |l|
-          l.formatter = Formatter.new
-          l.progname = progname
-        end
-      end
-
-      def create_syslog_logger
+      def create_syslog_backend
         begin
           require 'syslogger'
           Syslogger.new(progname, Syslog::LOG_PID, Syslog::LOG_LOCAL1)
@@ -241,23 +245,25 @@ module Madvertise
         end
       end
 
+      ##
+      # The Formatter class is responsible for formatting log messages. The
+      # default format is:
+      #
+      #   YYYY:MM:DD HH:MM:SS.MS daemon_name(pid) level: message
+      #
       class Formatter
 
-        # YYYY:MM:DD HH:MM:SS.MS daemon_name(pid) level: message
         @format = "%s %s(%d) [%s] %s\n"
 
         class << self
+          # Format string for log messages.
           attr_accessor :format
         end
 
+        # @private
         def call(severity, time, progname, msg)
-          self.class.format % [format_time( time ), progname, $$, severity, msg.to_s]
-        end
-
-        private
-
-        def format_time(time)
-          time.strftime("%Y-%m-%d %H:%M:%S.") + time.usec.to_s
+          time = time.strftime("%Y-%m-%d %H:%M:%S.") + time.usec.to_s
+          self.class.format % [time, progname, $$, severity, msg.to_s]
         end
       end
     end

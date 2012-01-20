@@ -39,19 +39,9 @@ describe ImprovedLogger do
     @logfile.should have_received_message(/\[DEBUG\].*Debug test/)
   end
 
-  it "should return true if debug level is set" do
-    @logger.level = :debug
-    @logger.debug?.should be true
-  end
-
   it "should log info level messages" do
     @logger.info("Info test")
     @logfile.should have_received_message(/\[INFO\].*Info test/)
-  end
-
-  it "should return true if info level is set" do
-    @logger.level = :info
-    @logger.info?.should be true
   end
 
   it "should log warn level messages" do
@@ -59,19 +49,9 @@ describe ImprovedLogger do
     @logfile.should have_received_message(/\[WARN\].*Warn test/)
   end
 
-  it "should return true if warn level is set" do
-    @logger.level = :warn
-    @logger.warn?.should be true
-  end
-
   it "should log error level messages" do
     @logger.error("Err test")
     @logfile.should have_received_message(/\[ERROR\].*Err test/)
-  end
-
-  it "should return true if error level is set" do
-    @logger.level = :error
-    @logger.error?.should be true
   end
 
   it "should log fatal level messages" do
@@ -80,19 +60,9 @@ describe ImprovedLogger do
     @logfile.should have_received_message(/\[FATAL\].*Fatal test/)
   end
 
-  it "should return true if fatal level is set" do
-    @logger.level = :fatal
-    @logger.fatal?.should be true
-  end
-
   it "should log unknown level messages" do
     @logger.unknown("Unknown test")
     @logfile.should have_received_message(/\[ANY\].*Unknown test/)
-  end
-
-  it "should return true if unknown level is set" do
-    @logger.level = :unknown
-    @logger.unknown?.should be true
   end
 
   it "should log the caller file and line number" do
@@ -164,40 +134,39 @@ describe ImprovedLogger do
     ImprovedLogger.silencer = true
   end
 
-  it "should support a transaction token" do
+  it "should support a token" do
     token = "3d5e27f7-b97c-4adc-b1fd-adf1bd4314e0"
 
-    @logger.new_transaction(token)
-    @logger.info "This should include a transaction token"
+    @logger.token = token
+    @logger.info "This should include a token"
     @logfile.should have_received_message(token)
 
-    @logger.end_transaction
-    @logger.info "This should not include a transaction token"
+    @logger.token = nil
+    @logger.info "This should not include a token"
     @logfile.should_not have_received_message(token)
   end
 
-  it "should support save/restore on transaction tokens" do
+  it "should support save/restore on tokens" do
     token1 = "3d5e27f7-b97c-4adc-b1fd-adf1bd4314e0"
     token2 = "1bdef605-34b9-4ec7-9a1c-cb58efc8a635"
 
-    obj1 = Object.new
+    obj = Object.new
 
-    @logger.new_transaction(token1)
-    @logger.info "This should include transaction token1"
+    @logger.token = token1
+    @logger.info "This should include token1"
     @logfile.should have_received_message(token1)
 
-    @logger.save_transaction(obj1)
-    @logger.new_transaction(token2)
-    @logger.info "This should include transaction token2"
+    @logger.save_token(obj)
+    @logger.token = token2
+    @logger.info "This should include token2"
     @logfile.should have_received_message(token2)
-    @logger.end_transaction
 
-    @logger.restore_transaction(obj1)
-    @logger.info "This should include transaction token1"
+    @logger.restore_token(obj)
+    @logger.info "This should include token1"
     @logfile.should have_received_message(token1)
 
-    @logger.end_transaction
-    @logger.info "This should not include a transaction token"
+    @logger.token = nil
+    @logger.info "This should not include a token"
     @logfile.should_not have_received_message(token1)
     @logfile.should_not have_received_message(token2)
   end
@@ -224,6 +193,7 @@ describe ImprovedLogger do
     syslogger_paths = $:.select { |p| p.match(/gems\/.*syslogger-/) }
     $:.replace($: - syslogger_paths)
 
+    STDERR.should_receive(:puts).with(/using STDERR for logging/)
     STDERR.should_receive(:write).with(/reverting to standard logger/)
     @logger = ImprovedLogger.new(:syslog)
     @logger.logger.should be_instance_of(Logger)

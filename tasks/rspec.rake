@@ -1,20 +1,7 @@
-begin
-  require 'rspec'
-rescue LoadError
-  require 'rubygems'
-  require 'rspec'
-end
+require 'rspec'
+require 'rspec/core/rake_task'
 
-begin
-  require 'rspec/core/rake_task'
-
-  desc "Run the specs"
-  RSpec::Core::RakeTask.new do |t|
-    t.rspec_opts = ['--options', "spec/spec.opts"]
-  end
-rescue LoadError
-  puts <<-EOS
-To use rspec for testing you must install rspec gem:
-    gem install rspec
-EOS
+desc "Run the specs"
+RSpec::Core::RakeTask.new do |t|
+  t.rspec_opts = ['--options', "spec/spec.opts"]
 end

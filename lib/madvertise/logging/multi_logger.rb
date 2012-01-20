@@ -1,22 +1,32 @@
 module Madvertise
   module Logging
+
+    ##
+    # MultiLogger is a simple class for multiplexing ImprovedLogger objects. It
+    # support attach/detach to send messages to any number of loggers.
+
     class MultiLogger
       def initialize(*loggers)
         @loggers = loggers
       end
 
+      # Attach an ImprovedLogger object.
       def attach(logger)
-        logger.new_transaction(@loggers.first.transaction_token)
+        logger.token = @loggers.first.token
         @loggers << logger
       end
 
+      # Detach an ImprovedLogger object.
       def detach(logger)
         @loggers.delete(logger)
       end
 
+      # Delegate all method calls to all attached loggers.
+      #
+      # @private
       def method_missing(name, *args)
-        @loggers.each do |l|
-          l.send(name, *args)
+        @loggers.each do |logger|
+          logger.send(name, *args)
         end
       end
     end
