@@ -1,6 +1,10 @@
 # Madvertise::Logging
 
-TODO: Write a gem description
+The madvertise-logging gem is a collection of classes for logging related
+tasks. The main class (`ImprovedLogger`) is an improved version of DaemonKits
+`AbstractLogger` class including token support, buffer backend and more.
+
+[![Build Status](https://secure.travis-ci.org/madvertise/logging.png)](http://travis-ci.org/madvertise/logging)
 
 ## Installation
 
@@ -18,7 +22,7 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+Please refer to the [API documentation](http://rubydoc.info/gems/madvertise-logging/frames).
 
 ## Contributing
 
