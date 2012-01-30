@@ -125,6 +125,13 @@ module Madvertise
         add(:unknown, msg)
       end
 
+      # Log an info level message
+      def <<(msg)
+        add(:info, msg)
+      end
+
+      alias write <<
+
       # Log an exception with error level.
       #
       # @param [Exception, String] exc  The exception to log. If exc is a
