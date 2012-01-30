@@ -44,6 +44,13 @@ describe ImprovedLogger do
     @logfile.should have_received_message(/\[INFO\].*Info test/)
   end
 
+  it "should log info level messages with write and << compat methods" do
+    @logger << "Info test1"
+    @logfile.should have_received_message(/\[INFO\].*Info test1/)
+    @logger.write("Info test2")
+    @logfile.should have_received_message(/\[INFO\].*Info test2/)
+  end
+
   it "should log warn level messages" do
     @logger.warn("Warn test")
     @logfile.should have_received_message(/\[WARN\].*Warn test/)
