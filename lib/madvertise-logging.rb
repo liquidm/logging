@@ -11,6 +11,7 @@ module Madvertise
 
     # set global logger instance
     def logger=(logger)
+      @logger.info("replacing current logger with #{logger.inspect}") if @logger
       @logger = logger
     end
   end
