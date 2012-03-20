@@ -10,7 +10,7 @@ module Madvertise
     #
     class ImprovedLogger
 
-      # Write a copy of all log messages to STDOUT.
+      # Write a copy of all log messages to stdout.
       attr_accessor :copy_to_stdout
 
       # Program name prefix. Used as ident for syslog backends.
@@ -205,7 +205,7 @@ module Madvertise
 
         logger.add(severity) { message }
 
-        STDOUT.puts(message) if self.copy_to_stdout && severity >= @logger.level
+        $stdout.puts(message) if self.copy_to_stdout && severity >= @logger.level
       end
 
       def create_backend
@@ -228,8 +228,8 @@ module Madvertise
         begin
           FileUtils.mkdir_p(File.dirname(@logfile))
         rescue
-          STDERR.puts "#{@logfile} not writable, using STDERR for logging" if @logfile
-          @logfile = STDERR
+          $stderr.puts "#{@logfile} not writable, using stderr for logging" if @logfile
+          @logfile = $stderr
         end
 
         create_logger

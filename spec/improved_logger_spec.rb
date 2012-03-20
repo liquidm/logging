@@ -26,9 +26,9 @@ describe ImprovedLogger do
     @logger.logger.should == l
   end
 
-  it "should be able to log to STDOUT as well" do
+  it "should be able to log to stdout as well" do
     @logger.copy_to_stdout = true
-    STDOUT.should_receive(:puts).with(/test/)
+    $stdout.should_receive(:puts).with(/test/)
 
     @logger.debug "test"
     @logfile.should have_received_message("test")
@@ -185,14 +185,14 @@ describe ImprovedLogger do
     @logger.buffer.should match(/test/)
   end
 
-  it "should fall back to STDERR if logfile is not writable" do
-    STDERR.should_receive(:puts).with(/not writable.*STDERR/)
+  it "should fall back to stderr if logfile is not writable" do
+    $stderr.should_receive(:puts).with(/not writable.*stderr/)
 
     @logfile = "/not/writable/spec.log"
     @logger = ImprovedLogger.new(@logfile)
     @logger.level = :debug
 
-    STDERR.should_receive(:write).with(/test/)
+    $stderr.should_receive(:write).with(/test/)
     @logger.info "test"
   end
 
@@ -200,8 +200,8 @@ describe ImprovedLogger do
     syslogger_paths = $:.select { |p| p.match(/gems\/.*syslogger-/) }
     $:.replace($: - syslogger_paths)
 
-    STDERR.should_receive(:puts).with(/using STDERR for logging/)
-    STDERR.should_receive(:write).with(/reverting to standard logger/)
+    $stderr.should_receive(:puts).with(/using stderr for logging/)
+    $stderr.should_receive(:write).with(/reverting to standard logger/)
     @logger = ImprovedLogger.new(:syslog)
     @logger.logger.should be_instance_of(Logger)
 

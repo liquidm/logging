@@ -14,13 +14,13 @@ describe MultiLogger do
     buflog = ImprovedLogger.new(:buffer)
     @ml.attach(buflog)
 
-    STDERR.should_receive(:write).with(/test1/)
+    $stderr.should_receive(:write).with(/test1/)
     @ml.info("test1")
     buflog.buffer.should match(/test1/)
 
     @ml.detach(buflog)
 
-    STDERR.should_receive(:write).with(/test2/)
+    $stderr.should_receive(:write).with(/test2/)
     @ml.info("test2")
     buflog.buffer.should_not match(/test2/)
   end
