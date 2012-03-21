@@ -117,7 +117,11 @@ module Madvertise
         :to_io,
         :write_nonblock,
       ].each do |m|
-        undef_method m
+        begin
+          undef_method m
+        rescue NameError
+          # do nothing, method may not exist in ruby 1.8
+        end
       end
 
       class << self
@@ -138,7 +142,11 @@ module Madvertise
           :try_convert,
           :write,
         ].each do |m|
-          undef_method m
+          begin
+            undef_method m
+          rescue NameError
+            # do nothing, method may not exist in ruby 1.8
+          end
         end
       end
     end
