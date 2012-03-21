@@ -14,7 +14,4 @@ Gem::Specification.new do |gem|
   gem.name          = "madvertise-logging"
   gem.require_paths = ["lib"]
   gem.version       = Madvertise::Logging::VERSION
-
-  gem.add_development_dependency("bundler")
-  gem.add_development_dependency("rake")
 end

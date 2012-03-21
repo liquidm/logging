@@ -16,6 +16,10 @@ describe ImprovedLogger do
     @logger.level = :debug
   end
 
+  it "should be an IO object" do
+    @logger.should be_a(IO)
+  end
+
   it "should have a backend logger" do
     @logger.logger.should_not be_nil
   end
@@ -24,6 +28,15 @@ describe ImprovedLogger do
     l = Logger.new('/dev/null')
     @logger.logger = l
     @logger.logger.should == l
+  end
+
+  it "should support reopening log files" do
+    @logger.close
+
+    FileUtils.rm(@logfile)
+
+    @logger.info('Reopen')
+    @logfile.should have_received_message("Reopen")
   end
 
   it "should be able to log to stdout as well" do
@@ -109,15 +122,6 @@ describe ImprovedLogger do
     @logfile.should_not have_received_message("EXCEPTION:")
   end
 
-  it "should support reopening log files" do
-    @logger.close
-
-    FileUtils.rm(@logfile)
-
-    @logger.info('Reopen')
-    @logfile.should have_received_message("Reopen")
-  end
-
   it "should support silencing" do
     @logger.silence do |logger|
       logger.info "This should never be logged"
@@ -178,13 +182,6 @@ describe ImprovedLogger do
     @logfile.should_not have_received_message(token2)
   end
 
-  it "should support a buffered logger" do
-    @logger = ImprovedLogger.new(:buffer)
-    @logger.level = :debug
-    @logger.info "test"
-    @logger.buffer.should match(/test/)
-  end
-
   it "should fall back to stderr if logfile is not writable" do
     $stderr.should_receive(:puts).with(/not writable.*stderr/)
 
@@ -208,9 +205,130 @@ describe ImprovedLogger do
     $:.replace($: + syslogger_paths)
   end
 
-  it "should support a syslog backend" do
-    @logger = ImprovedLogger.new(:syslog)
-    @logger.level = :debug
-    @logger.logger.should be_instance_of(Syslogger)
+  context "should behave like write-only IO and" do
+    it "should close on close_write" do
+      @logger.should_receive(:close)
+      @logger.close_write
+    end
+
+    it "should be in sync mode" do
+      @logger.sync.should == true
+    end
+
+    it "should return self on flush" do
+      @logger.flush.should == @logger
+    end
+
+    it "should return self on set_encoding" do
+      @logger.set_encoding.should == @logger
+    end
+
+    it "should ne be a tty" do
+      @logger.tty?.should == false
+    end
+
+    it "should support printf" do
+      @logger.printf("%.2f %s", 1.12345, "foo")
+      @logfile.should have_received_message("1.12 foo")
+    end
+
+    it "should support print" do
+      $,, old = ' ', $,
+      @logger.print("foo", "bar", 123, ["baz", 345])
+      @logfile.should have_received_message("foo bar 123 baz 345")
+      $, = old
+    end
+
+    it "should support puts" do
+      @logger.puts("a", "b")
+      @logfile.should have_received_message("b")
+      @logger.puts(["c", "d"])
+      @logfile.should have_received_message("b")
+      @logger.puts(1, 2, 3)
+      @logfile.should have_received_message("3")
+    end
+
+    it "should implement readbyte, readchar, readline" do
+      {
+        :readbyte => :getbyte,
+        :readchar => :getc,
+        :readline => :gets,
+      }.each do |m, should|
+        @logger.should_receive(should)
+        lambda {
+          @logger.send(m)
+        }.should raise_error(IOError)
+      end
+    end
+
+    it "should not implement closed?" do
+      lambda {
+        @logger.closed?
+      }.should raise_error(NotImplementedError)
+    end
+
+    it "should not implement sync=" do
+      lambda {
+        @logger.sync = false
+      }.should raise_error(NotImplementedError)
+    end
+
+    [
+      :bytes,
+      :chars,
+      :codepoints,
+      :lines,
+      :eof?,
+      :getbyte,
+      :getc,
+      :gets,
+      :pos,
+      :pos=,
+      :read,
+      :readlines,
+      :readpartial,
+      :rewind,
+      :seek,
+      :ungetbyte,
+      :ungetc
+    ].each do |m|
+      it "should raise IOError for method #{m}" do
+        lambda {
+          @logger.send(m)
+        }.should raise_error(IOError)
+      end
+    end
   end
+
+  context "buffer backend" do
+    before(:each) do
+      @logger = ImprovedLogger.new(:buffer)
+      @logger.level = :debug
+    end
+
+    it "should support a buffered logger" do
+      @logger.info "test"
+      @logger.buffer.should match(/test/)
+    end
+
+    it "should not be in sync mode" do
+      @logger.sync.should == false
+    end
+  end
+
+  context "syslog backend" do
+    before(:each) do
+      @logger = ImprovedLogger.new(:syslog)
+      @logger.level = :debug
+    end
+
+    it "should have a syslog backend" do
+      @logger.logger.should be_instance_of(Syslogger)
+    end
+
+    it "should be in sync mode" do
+      @logger.sync.should == true
+    end
+  end
+
 end

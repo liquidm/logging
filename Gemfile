@@ -3,6 +3,12 @@ source 'https://rubygems.org'
 # Specify your gem's dependencies in madvertise-logging.gemspec
 gemspec
 
+group :development do
+  gem 'rake'
+  gem 'pry'
+  gem 'pry-doc'
+end
+
 group :test do
   gem 'rspec'
   gem 'simplecov'

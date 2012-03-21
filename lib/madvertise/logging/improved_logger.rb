@@ -1,6 +1,8 @@
 require 'logger'
 require 'stringio'
 
+require 'madvertise/logging/improved_io'
+
 module Madvertise
   module Logging
 
@@ -8,7 +10,7 @@ module Madvertise
     # ImprovedLogger is an enhanced version of DaemonKits AbstractLogger class
     # with token support, buffer backend and more.
     #
-    class ImprovedLogger
+    class ImprovedLogger < ImprovedIO
 
       # Write a copy of all log messages to stdout.
       attr_accessor :copy_to_stdout
@@ -273,6 +275,57 @@ module Madvertise
           self.class.format % [time, progname, $$, severity, msg.to_s]
         end
       end
+
+      module IOCompat
+        def close_read
+          nil
+        end
+
+        def close_write
+          close
+        end
+
+        def closed?
+          raise NotImplementedError
+        end
+
+        def sync
+          @backend != :buffer
+        end
+
+        def sync=(value)
+          raise NotImplementedError, "#{self} cannot change sync mode"
+        end
+
+        # ImprovedLogger is write-only
+        def _raise_write_only
+          raise IOError, "#{self} is a buffer-less, write-only, non-seekable stream."
+        end
+
+        [
+          :bytes,
+          :chars,
+          :codepoints,
+          :lines,
+          :eof?,
+          :getbyte,
+          :getc,
+          :gets,
+          :pos,
+          :pos=,
+          :read,
+          :readlines,
+          :readpartial,
+          :rewind,
+          :seek,
+          :ungetbyte,
+          :ungetc
+        ].each do |m|
+          alias_method m, :_raise_write_only
+        end
+      end
+
+      include IOCompat
     end
   end
 end
