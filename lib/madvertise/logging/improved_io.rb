@@ -78,15 +78,19 @@ module Madvertise
       end
 
       # provide sane aliases for IO compat
-      alias_method :each_byte, :bytes
-      alias_method :each_char, :chars
-      alias_method :each_codepoint, :codepoints
-      alias_method :each_line, :lines
-      alias_method :each, :lines
-      alias_method :eof, :eof?
-      alias_method :isatty, :tty?
-      alias_method :sysread, :read
-      alias_method :syswrite, :write
+      begin
+        alias_method :each_byte, :bytes
+        alias_method :each_char, :chars
+        alias_method :each_codepoint, :codepoints
+        alias_method :each_line, :lines
+        alias_method :each, :lines
+        alias_method :eof, :eof?
+        alias_method :isatty, :tty?
+        alias_method :sysread, :read
+        alias_method :syswrite, :write
+      rescue NameError
+        # do nothing, method may not exist in ruby 1.8
+      end
 
       # skip these IO methods
       [
