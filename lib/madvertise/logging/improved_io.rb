@@ -26,20 +26,20 @@ module Madvertise
       end
 
       def readbyte
-        getbyte.tap do |b|
-          raise EOFError unless b
+        getbyte.tap do |byte|
+          raise EOFError unless byte
         end
       end
 
       def readchar
-        getc.tap do |c|
-          raise EOFError unless c
+        getc.tap do |char|
+          raise EOFError unless char
         end
       end
 
       def readline
-        gets.tap do |s|
-          raise EOFError unless s
+        gets.tap do |string|
+          raise EOFError unless string
         end
       end
 
@@ -53,8 +53,13 @@ module Madvertise
       end
 
       def print(*arguments)
-        arguments = [$_] if arguments.empty?
-        write(arguments.join($,))
+        args = if arguments.empty?
+                 [$_]
+               else
+                 arguments
+               end
+
+        write(args.join($,))
         return nil
       end
 
@@ -64,13 +69,13 @@ module Madvertise
       def puts(*arguments)
         return nil if arguments.empty?
 
-        arguments.each_with_index do |a, i|
-          if a.is_a?(Array)
-            puts(*a)
-          elsif a.is_a?(String)
-            write(a)
+        arguments.each do |arg|
+          if arg.is_a?(Array)
+            puts(*arg)
+          elsif arg.is_a?(String)
+            write(arg)
           else
-            write(a.to_s)
+            write(arg.to_s)
           end
         end
 
@@ -116,9 +121,9 @@ module Madvertise
         :to_i,
         :to_io,
         :write_nonblock,
-      ].each do |m|
+      ].each do |meth|
         begin
-          undef_method m
+          undef_method meth
         rescue NameError
           # do nothing, method may not exist in ruby 1.8
         end
@@ -141,9 +146,9 @@ module Madvertise
           :sysopen,
           :try_convert,
           :write,
-        ].each do |m|
+        ].each do |meth|
           begin
-            undef_method m
+            undef_method meth
           rescue NameError
             # do nothing, method may not exist in ruby 1.8
           end

@@ -139,12 +139,8 @@ module Madvertise
       # @param [Exception, String] exc  The exception to log. If exc is a
       #   String no backtrace will be generated.
       def exception(exc)
-        if exc.is_a?(::Exception)
-          message = "EXCEPTION: #{exc.message}: #{clean_trace(exc.backtrace)}"
-        else
-          message = exc
-        end
-        add(:error, message, true)
+        exc = "EXCEPTION: #{exc.message}: #{clean_trace(exc.backtrace)}" if exc.is_a?(::Exception)
+        add(:error, exc, true)
       end
 
       # Save the current token and associate it with obj#object_id.
@@ -320,8 +316,8 @@ module Madvertise
           :seek,
           :ungetbyte,
           :ungetc
-        ].each do |m|
-          alias_method m, :_raise_write_only
+        ].each do |meth|
+          alias_method meth, :_raise_write_only
         end
       end
 

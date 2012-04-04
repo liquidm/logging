@@ -1,0 +1,14 @@
+---
+LongParameterList:
+  exclude:
+    - Formatter#call
+FeatureEnvy:
+  exclude:
+    - ImprovedLogger#clean_trace
+    - ImprovedLogger#exception
+UtilityFunction:
+  exclude:
+    - ImprovedLogger#clean_trace
+LargeClass:
+  exclude:
+    - ImprovedLogger
