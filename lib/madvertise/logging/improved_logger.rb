@@ -267,7 +267,8 @@ module Madvertise
 
         # @private
         def call(severity, time, progname, msg)
-          time = time.strftime("%Y-%m-%d %H:%M:%S.") + time.usec.to_s
+          # this is so ugly because ruby 1.8 does not support %N in strftime
+          time = time.strftime("%Y-%m-%d %H:%M:%S.") + sprintf('%.6f', time.usec.to_f/1000/1000)[2..-1]
           self.class.format % [time, progname, $$, severity, msg.to_s]
         end
       end
