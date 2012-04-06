@@ -176,9 +176,7 @@ module Madvertise
       #
       # @private
       def clean_trace(trace)
-        trace.map do |line|
-          line.gsub(ROOT, '')
-        end.reject do |line|
+        trace.reject do |line|
           line =~ /(gems|vendor)\/madvertise-logging/
         end
       end
