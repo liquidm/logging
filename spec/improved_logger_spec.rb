@@ -1,17 +1,20 @@
 require File.dirname(__FILE__) + '/spec_helper'
 
+require 'tempfile'
+
 include Madvertise::Logging
 
 RSpec::Matchers.define :have_received_message do |expected|
   match do |actual|
-    IO.readlines(actual).last.match(Regexp.new(expected))
+    last = IO.readlines(actual).last
+    last ? last.match(Regexp.new(expected)) : false
   end
 end
 
 describe ImprovedLogger do
 
   before(:each) do
-    @logfile = "#{ROOT}/log/spec.log"
+    @logfile = Tempfile.new("spec").path
     @logger = ImprovedLogger.new(@logfile)
     @logger.level = :debug
   end

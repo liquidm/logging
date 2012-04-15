@@ -1,20 +1,17 @@
-source 'https://rubygems.org'
+source :rubygems
 
-# Specify your gem's dependencies in madvertise-logging.gemspec
 gemspec
 
-group :development do
-  gem 'rake'
+group :development, :test do
+  gem 'bundler'
   gem 'pry'
   gem 'pry-doc'
-end
-
-group :test do
-  gem 'rspec'
-  gem 'simplecov'
-  gem 'ruby2ruby', '=1.3.0' # 1.3.1 is broken :(
-  gem 'reek'
-  gem 'yard'
+  gem 'rake'
   gem 'redcarpet'
+  gem 'reek'
+  gem 'rspec'
+  gem 'ruby2ruby', '=1.3.0' # 1.3.1 is broken :(
+  gem 'simplecov'
   gem 'syslogger', :require => false
+  gem 'yard'
 end
