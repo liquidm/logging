@@ -12,9 +12,6 @@ module Madvertise
     #
     class ImprovedLogger < ImprovedIO
 
-      # Write a copy of all log messages to stdout.
-      attr_accessor :copy_to_stdout
-
       # Program name prefix. Used as ident for syslog backends.
       attr_accessor :progname
 
@@ -42,7 +39,6 @@ module Madvertise
       end
 
       def initialize(logfile = nil, progname = nil)
-        @copy_to_stdout = false
         @progname = progname || File.basename($0)
         self.logger = logfile
       end
@@ -200,8 +196,6 @@ module Madvertise
         message = "[#{@token}] #{message}" if @token
 
         logger.add(severity) { message }
-
-        $stdout.puts(message) if self.copy_to_stdout && severity >= @logger.level
       end
 
       def create_backend
