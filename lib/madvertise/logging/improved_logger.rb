@@ -196,6 +196,7 @@ module Madvertise
         message = "[#{@token}] #{message}" if @token
 
         logger.add(severity) { message }
+        return nil
       end
 
       def create_backend
