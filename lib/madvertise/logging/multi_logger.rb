@@ -12,7 +12,7 @@ module Madvertise
 
       # Attach an ImprovedLogger object.
       def attach(logger)
-        logger.token = @loggers.first.token
+        logger.token = @loggers.first.token rescue nil
         @loggers << logger
       end
 
