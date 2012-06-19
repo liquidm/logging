@@ -42,14 +42,6 @@ describe ImprovedLogger do
     @logfile.should have_received_message("Reopen")
   end
 
-  it "should be able to log to stdout as well" do
-    @logger.copy_to_stdout = true
-    $stdout.should_receive(:puts).with(/test/)
-
-    @logger.debug "test"
-    @logfile.should have_received_message("test")
-  end
-
   it "should log debug level messages" do
     @logger.debug("Debug test")
     @logfile.should have_received_message(/\[DEBUG\].*Debug test/)
