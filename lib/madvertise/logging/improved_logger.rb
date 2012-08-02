@@ -38,9 +38,9 @@ module Madvertise
         attr_accessor :silencer
       end
 
-      def initialize(logfile = nil, progname = nil)
-        @progname = progname || File.basename($0)
-        self.logger = logfile
+      def initialize(backend = STDERR, progname = nil)
+        self.progname = progname || File.basename($0)
+        self.logger = backend
       end
 
       # Get the backend logger.
@@ -52,21 +52,19 @@ module Madvertise
 
       # Set a different backend.
       #
-      # @param [Symbol, String, Logger] value  The new logger backend. Either a
-      #   Logger object, a String containing the logfile path or a Symbol to
+      # @param [Symbol, String, IO, Logger] value  The new logger backend. Either a
+      #   Logger object, an IO object, a String containing the logfile path or a Symbol to
       #   create a default backend for :syslog or :buffer
       # @return [Logger] The newly created backend logger object.
       def logger=(value)
-        @logger.close rescue nil
-        @logfile = value.is_a?(String) ? value : nil
-        @backend = value.is_a?(Symbol) ? value : :logger
-        @logger = value.is_a?(Logger) ? value : create_backend
+        @backend = value
+        create_backend
       end
 
       # Close any connections/descriptors that may have been opened by the
       # current backend.
       def close
-        logger.close rescue nil
+        @logger.close rescue nil
         @logger = nil
       end
 
@@ -200,36 +198,21 @@ module Madvertise
       end
 
       def create_backend
+        self.close
+
         case @backend
-        when :buffer
-          create_buffering_backend
         when :syslog
           create_syslog_backend
+        when :buffer
+          create_buffer_backend
+        when String
+          create_file_backend
+        when IO
+          create_io_backend
+        when Logger
+          @backend
         else
-          create_standard_backend
-        end
-      end
-
-      def create_buffering_backend
-        @logfile = StringIO.new
-        create_logger
-      end
-
-      def create_standard_backend
-        begin
-          FileUtils.mkdir_p(File.dirname(@logfile))
-        rescue
-          $stderr.puts "#{@logfile} not writable, using stderr for logging" if @logfile
-          @logfile = $stderr
-        end
-
-        create_logger
-      end
-
-      def create_logger
-        Logger.new(@logfile).tap do |logger|
-          logger.formatter = Formatter.new
-          logger.progname = progname
+          raise "unknown backend: #{@backend.inspect}"
         end
       end
 
@@ -238,8 +221,38 @@ module Madvertise
           require 'syslogger'
           Syslogger.new(progname, Syslog::LOG_PID, Syslog::LOG_LOCAL1)
         rescue LoadError
-          self.logger = :logger
-          self.error("Couldn't load syslogger gem, reverting to standard logger")
+          self.logger = $stderr
+          error("Couldn't load syslogger gem, reverting to STDERR for logging")
+        end
+      end
+
+      def create_buffer_backend
+        @logfile = StringIO.new
+        create_logger
+      end
+
+      def create_io_backend
+        @logfile = @backend
+        create_logger
+      end
+
+      def create_file_backend
+        @logfile = @backend
+
+        begin
+          FileUtils.mkdir_p(File.dirname(@logfile))
+        rescue
+          self.logger = $stderr
+          error("#{@logfile} not writable, using STDERR for logging")
+        else
+          create_logger
+        end
+      end
+
+      def create_logger
+        Logger.new(@logfile).tap do |logger|
+          logger.formatter = Formatter.new
+          logger.progname = progname
         end
       end
 

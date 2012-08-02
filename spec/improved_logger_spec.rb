@@ -178,7 +178,7 @@ describe ImprovedLogger do
   end
 
   it "should fall back to stderr if logfile is not writable" do
-    $stderr.should_receive(:puts).with(/not writable.*stderr/)
+    $stderr.should_receive(:write).with(/not writable.*STDERR/)
 
     @logfile = "/not/writable/spec.log"
     @logger = ImprovedLogger.new(@logfile)
@@ -192,8 +192,7 @@ describe ImprovedLogger do
     syslogger_paths = $:.select { |p| p.match(/gems\/.*syslogger-/) }
     $:.replace($: - syslogger_paths)
 
-    $stderr.should_receive(:puts).with(/using stderr for logging/)
-    $stderr.should_receive(:write).with(/reverting to standard logger/)
+    $stderr.should_receive(:write).with(/reverting to STDERR/)
     @logger = ImprovedLogger.new(:syslog)
     @logger.logger.should be_instance_of(Logger)
 
