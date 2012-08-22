@@ -128,13 +128,13 @@ module Madvertise
 
       alias write <<
 
-      # Log an exception with error level.
+      # Log an exception with fatal level.
       #
       # @param [Exception, String] exc  The exception to log. If exc is a
       #   String no backtrace will be generated.
       def exception(exc)
         exc = "EXCEPTION: #{exc.message}: #{clean_trace(exc.backtrace)}" if exc.is_a?(::Exception)
-        add(:error, exc, true)
+        add(:fatal, exc, true)
       end
 
       # Save the current token and associate it with obj#object_id.
