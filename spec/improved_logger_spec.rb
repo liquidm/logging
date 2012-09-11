@@ -71,7 +71,6 @@ describe ImprovedLogger do
 
   it "should log fatal level messages" do
     @logger.fatal("Fatal test")
-
     @logfile.should have_received_message(/\[FATAL\].*Fatal test/)
   end
 
@@ -115,6 +114,19 @@ describe ImprovedLogger do
   it "should not handle a backtrace if object is not an exception" do
     @logger.exception("not an exception object")
     @logfile.should_not have_received_message("EXCEPTION:")
+  end
+
+  it "should log additional info on exceptions" do
+    fake_trace = [
+                  "/home/jdoe/app/libexec/app.rb:1:in `foo'",
+                  "/usr/lib/ruby/gems/1.8/gems/madvertise-logging-0.1.0/lib/madvertise/logging/improved_logger.rb:42: in `info'"
+                 ]
+
+    e = RuntimeError.new('Test error')
+    e.set_backtrace(fake_trace)
+
+    @logger.exception(e, "app failed to foo")
+    @logfile.should have_received_message("app failed to foo")
   end
 
   it "should support silencing" do

@@ -132,9 +132,12 @@ module Madvertise
       #
       # @param [Exception, String] exc  The exception to log. If exc is a
       #   String no backtrace will be generated.
-      def exception(exc)
-        exc = "EXCEPTION: #{exc.message}: #{clean_trace(exc.backtrace)}" if exc.is_a?(::Exception)
-        add(:fatal, exc, true)
+      # @param [String] prefix  Additional message to log.
+      def exception(exc, prefix=nil)
+        msg = "EXCEPTION"
+        msg << ": #{prefix}" if prefix
+        msg << ": #{exc.message}: #{clean_trace(exc.backtrace)}" if exc.is_a?(::Exception)
+        fatal(msg)
       end
 
       # Save the current token and associate it with obj#object_id.
@@ -188,11 +191,10 @@ module Madvertise
         [ File.basename(file), num ].join(':')
       end
 
-      def add(severity, message, skip_caller = false)
+      def add(severity, message)
         severity = self.class.severities[severity]
-        message = "#{called_from}: #{message}" unless skip_caller
+        message = "#{called_from}: #{message}"
         message = "[#{@token}] #{message}" if @token
-
         logger.add(severity) { message }
         return nil
       end
@@ -279,6 +281,7 @@ module Madvertise
         end
       end
 
+      # @private
       module IOCompat
         def close_read
           nil
