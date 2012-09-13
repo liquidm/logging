@@ -58,7 +58,8 @@ module Madvertise
       # @return [Logger] The newly created backend logger object.
       def logger=(value)
         @backend = value
-        create_backend
+        @logger = create_backend
+        define_level_methods
       end
 
       # Close any connections/descriptors that may have been opened by the
@@ -79,7 +80,8 @@ module Madvertise
       #
       # @return [Symbol] Current logging level.
       def level
-        self.class.severities.invert[@logger.level]
+        @severities_inverted ||= self.class.severities.invert
+        @level ||= @severities_inverted[@logger.level]
       end
 
       # Set the logging level.
@@ -87,41 +89,25 @@ module Madvertise
       # @param [Symbol, Fixnum] level  New level as Symbol or Fixnum from Logger class.
       # @return [Fixnum] New level converted to Fixnum from Logger class.
       def level=(level)
-        level = level.is_a?(Symbol) ? self.class.severities[level] : level
-        logger.level = level
+        logger.level = level.is_a?(Symbol) ? self.class.severities[level] : level
+        define_level_methods
       end
 
-      # Log a debug level message.
-      def debug(msg)
-        add(:debug, msg)
+      # @private
+      def define_level_methods
+        # We do this dynamically here, so we can implement a no-op for levels
+        # which are disabled.
+        self.class.severities.each do |severity, num|
+          if num >= logger.level
+            instance_eval("def #{severity}(*args); add(:#{severity}, *args); end", __FILE__, __LINE__)
+          else
+            instance_eval("def #{severity}(*args); end", __FILE__, __LINE__)
+          end
+        end
       end
 
-      # Log an info level message.
-      def info(msg)
-        add(:info, msg)
-      end
-
-      # Log a warning level message.
-      def warn(msg)
-        add(:warn, msg)
-      end
-
-      # Log an error level message.
-      def error(msg)
-        add(:error, msg)
-      end
-
-      # Log a fatal level message.
-      def fatal(msg)
-        add(:fatal, msg)
-      end
-
-      # Log a message with unknown level.
-      def unknown(msg)
-        add(:unknown, msg)
-      end
-
-      # Log an info level message
+      # Compatibility method
+      # @private
       def <<(msg)
         add(:info, msg)
       end
