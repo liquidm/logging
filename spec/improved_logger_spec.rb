@@ -6,8 +6,16 @@ include Madvertise::Logging
 
 RSpec::Matchers.define :have_received_message do |expected|
   match do |actual|
-    last = IO.readlines(actual).last
-    last ? last.match(Regexp.new(expected)) : false
+    @last = IO.readlines(actual).last
+    @last ? @last.match(Regexp.new(expected)) : false
+  end
+
+  failure_message_for_should do |actual|
+    "expected #{@last.inspect} to contain #{expected}"
+  end
+
+  failure_message_for_should_not do |actual|
+    "expected #{@last.inspect} to not contain #{expected}"
   end
 end
 
@@ -19,12 +27,30 @@ describe ImprovedLogger do
     @logger.level = :debug
   end
 
-  it "should be an IO object" do
-    @logger.should be_a(IO)
+  subject { @logger }
+
+  it { should be_a IO }
+  its(:logger) { should_not be_nil }
+
+  ImprovedLogger.severities.keys.each do |level|
+    describe level do
+      subject { @logfile }
+      before { @logger.send(level, "test") }
+      let(:prefix) { level == :unknown ? "ANY" : level.to_s.upcase }
+      it { should have_received_message(/\[#{prefix}\].*test/) }
+    end
   end
 
-  it "should have a backend logger" do
-    @logger.logger.should_not be_nil
+  it "should log info level messages with write and << compat methods" do
+    @logger << "Info test1"
+    @logfile.should have_received_message(/\[INFO\].*Info test1/)
+    @logger.write("Info test2")
+    @logfile.should have_received_message(/\[INFO\].*Info test2/)
+  end
+
+  it "should support additional attributes" do
+    @logger.info("foo", key: "value", test: "with space")
+    @logfile.should have_received_message(/key=value test="with space"/)
   end
 
   it "should accept a different backend" do
@@ -35,48 +61,9 @@ describe ImprovedLogger do
 
   it "should support reopening log files" do
     @logger.close
-
     FileUtils.rm(@logfile)
-
     @logger.info('Reopen')
     @logfile.should have_received_message("Reopen")
-  end
-
-  it "should log debug level messages" do
-    @logger.debug("Debug test")
-    @logfile.should have_received_message(/\[DEBUG\].*Debug test/)
-  end
-
-  it "should log info level messages" do
-    @logger.info("Info test")
-    @logfile.should have_received_message(/\[INFO\].*Info test/)
-  end
-
-  it "should log info level messages with write and << compat methods" do
-    @logger << "Info test1"
-    @logfile.should have_received_message(/\[INFO\].*Info test1/)
-    @logger.write("Info test2")
-    @logfile.should have_received_message(/\[INFO\].*Info test2/)
-  end
-
-  it "should log warn level messages" do
-    @logger.warn("Warn test")
-    @logfile.should have_received_message(/\[WARN\].*Warn test/)
-  end
-
-  it "should log error level messages" do
-    @logger.error("Err test")
-    @logfile.should have_received_message(/\[ERROR\].*Err test/)
-  end
-
-  it "should log fatal level messages" do
-    @logger.fatal("Fatal test")
-    @logfile.should have_received_message(/\[FATAL\].*Fatal test/)
-  end
-
-  it "should log unknown level messages" do
-    @logger.unknown("Unknown test")
-    @logfile.should have_received_message(/\[ANY\].*Unknown test/)
   end
 
   it "should log the caller file and line number" do
@@ -87,46 +74,42 @@ describe ImprovedLogger do
     @logfile.should have_received_message("#{f}:#{l}:")
   end
 
-  it "should log exceptions with daemon traces" do
-    fake_trace = [
-                  "/home/jdoe/app/libexec/app.rb:1:in `foo'",
-                  "/usr/lib/ruby/gems/1.8/gems/madvertise-logging-0.1.0/lib/madvertise/logging/improved_logger.rb:42: in `info'"
-                 ]
-
-    e = RuntimeError.new('Test error')
-    e.set_backtrace(fake_trace)
-
-    @logger.exception(e)
-    @logfile.should have_received_message("EXCEPTION: Test error")
+  let(:fake_trace) do
+    [
+      "/home/jdoe/app/libexec/app.rb:1:in `foo'",
+      "/usr/lib/ruby/gems/1.8/gems/madvertise-logging-0.1.0/lib/madvertise/logging/improved_logger.rb:42: in `info'"
+    ]
   end
 
-  it "should log exceptions without framework traces" do
-    fake_trace = [
-                  "/home/jdoe/app/libexec/app.rb:1:in `foo'",
-                  "/usr/lib/ruby/gems/1.8/gems/madvertise-logging-0.1.0/lib/madvertise/logging/improved_logger.rb:42: in `info'"
-                 ]
+  describe :exceptions do
+    let(:exc) do
+      RuntimeError.new('Test error').tap do |exc|
+        exc.set_backtrace(fake_trace)
+      end
+    end
 
-    clean_trace = @logger.clean_trace(fake_trace)
-    clean_trace.should include("/home/jdoe/app/libexec/app.rb:1:in `foo'")
-    clean_trace.should_not include("/usr/lib/ruby/gems/1.8/gems/madvertise-logging-0.1.0/lib/madvertise/logging/improved_logger.rb:42: in `info'")
+    subject { @logfile }
+
+    context "with exception object" do
+      before { @logger.exception(exc) }
+      it { should have_received_message("EXCEPTION: Test error") }
+    end
+
+    context "with exception object and prefix" do
+      before { @logger.exception(exc, "app failed to foo") }
+      it { should have_received_message("app failed to foo") }
+    end
+
+    context "without exception object" do
+      before { @logger.exception("not an exception object") }
+      it { should_not have_received_message("EXCEPTION:") }
+    end
   end
 
-  it "should not handle a backtrace if object is not an exception" do
-    @logger.exception("not an exception object")
-    @logfile.should_not have_received_message("EXCEPTION:")
-  end
-
-  it "should log additional info on exceptions" do
-    fake_trace = [
-                  "/home/jdoe/app/libexec/app.rb:1:in `foo'",
-                  "/usr/lib/ruby/gems/1.8/gems/madvertise-logging-0.1.0/lib/madvertise/logging/improved_logger.rb:42: in `info'"
-                 ]
-
-    e = RuntimeError.new('Test error')
-    e.set_backtrace(fake_trace)
-
-    @logger.exception(e, "app failed to foo")
-    @logfile.should have_received_message("app failed to foo")
+  describe :clean_trace do
+    subject { @logger.clean_trace(fake_trace) }
+    it { should include("/home/jdoe/app/libexec/app.rb:1:in `foo'") }
+    it { should_not include("/usr/lib/ruby/gems/1.8/gems/madvertise-logging-0.1.0/lib/madvertise/logging/improved_logger.rb:42: in `info'") }
   end
 
   it "should support silencing" do
@@ -217,21 +200,10 @@ describe ImprovedLogger do
       @logger.close_write
     end
 
-    it "should be in sync mode" do
-      @logger.sync.should == true
-    end
-
-    it "should return self on flush" do
-      @logger.flush.should == @logger
-    end
-
-    it "should return self on set_encoding" do
-      @logger.set_encoding.should == @logger
-    end
-
-    it "should ne be a tty" do
-      @logger.tty?.should == false
-    end
+    its(:flush) { should == @logger }
+    its(:set_encoding) { should == @logger }
+    its(:sync) { should == true }
+    its(:tty?) { should == false }
 
     it "should support printf" do
       @logger.printf("%.2f %s", 1.12345, "foo")
@@ -254,6 +226,14 @@ describe ImprovedLogger do
       @logfile.should have_received_message("3")
     end
 
+    it "should not implement closed?" do
+      expect { @logger.closed? }.to raise_error(NotImplementedError)
+    end
+
+    it "should not implement sync=" do
+      expect { @logger.sync = false }.to raise_error(NotImplementedError)
+    end
+
     it "should implement readbyte, readchar, readline" do
       {
         :readbyte => :getbyte,
@@ -261,22 +241,8 @@ describe ImprovedLogger do
         :readline => :gets,
       }.each do |m, should|
         @logger.should_receive(should)
-        lambda {
-          @logger.send(m)
-        }.should raise_error(IOError)
+        expect { @logger.send(m) }.to raise_error(IOError)
       end
-    end
-
-    it "should not implement closed?" do
-      lambda {
-        @logger.closed?
-      }.should raise_error(NotImplementedError)
-    end
-
-    it "should not implement sync=" do
-      lambda {
-        @logger.sync = false
-      }.should raise_error(NotImplementedError)
     end
 
     [
@@ -299,41 +265,30 @@ describe ImprovedLogger do
       :ungetc
     ].each do |m|
       it "should raise IOError for method #{m}" do
-        lambda {
-          @logger.send(m)
-        }.should raise_error(IOError)
+        expect { @logger.send(m) }.to raise_error(IOError)
       end
     end
   end
 
   context "buffer backend" do
-    before(:each) do
-      @logger = ImprovedLogger.new(:buffer)
-      @logger.level = :debug
-    end
+    before { @logger = ImprovedLogger.new(:buffer) }
+    its(:sync) { should == false }
 
     it "should support a buffered logger" do
       @logger.info "test"
       @logger.buffer.should match(/test/)
     end
-
-    it "should not be in sync mode" do
-      @logger.sync.should == false
-    end
   end
 
   context "syslog backend" do
-    before(:each) do
-      @logger = ImprovedLogger.new(:syslog)
-      @logger.level = :debug
-    end
+    before { @logger = ImprovedLogger.new(:syslog) }
+    its(:sync) { should == true }
+    its(:logger) { should be_instance_of(Syslogger) }
+  end
 
-    it "should have a syslog backend" do
-      @logger.logger.should be_instance_of(Syslogger)
-    end
-
-    it "should be in sync mode" do
-      @logger.sync.should == true
+  context "unknown backend" do
+    it "should raise for unknown backends " do
+      expect { ImprovedLogger.new(:unknown_logger) }.to raise_error(RuntimeError)
     end
   end
 
