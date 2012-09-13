@@ -6,7 +6,7 @@ include Madvertise::Logging
 
 RSpec::Matchers.define :have_received_message do |expected|
   match do |actual|
-    @last = IO.readlines(actual).last
+    @last = IO.readlines(actual).last rescue nil
     @last ? @last.match(Regexp.new(expected)) : false
   end
 
