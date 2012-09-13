@@ -29,11 +29,11 @@ describe ImprovedLogger do
   end
 
   after(:all) do
-    File.unlink(@logfile)
+    File.unlink(@logfile) rescue nil
   end
 
   before(:each) do
-    File.unlink(@logfile)
+    File.unlink(@logfile) rescue nil
     @logger = ImprovedLogger.new(@logfile)
     @logger.level = :debug
   end
