@@ -21,8 +21,19 @@ end
 
 describe ImprovedLogger do
 
+  before(:all) do
+    Tempfile.new("spec").tap do |tmpfile|
+      @logfile = tmpfile.path
+      tmpfile.close
+    end
+  end
+
+  after(:all) do
+    File.unlink(@logfile)
+  end
+
   before(:each) do
-    @logfile = Tempfile.new("spec").path
+    File.unlink(@logfile)
     @logger = ImprovedLogger.new(@logfile)
     @logger.level = :debug
   end
