@@ -28,6 +28,9 @@ module Madvertise
       # Arbitrary token to prefix log messages with.
       attr_accessor :token
 
+      # Log filename for file backend.
+      attr_reader :logfile
+
       @severities = {
         :debug   => Logger::DEBUG,
         :info    => Logger::INFO,
