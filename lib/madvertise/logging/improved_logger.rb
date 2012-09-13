@@ -3,6 +3,16 @@ require 'stringio'
 
 require 'madvertise/logging/improved_io'
 
+class String
+  def clean_quote
+    if index(/["\s]/)
+      %{"#{tr('"', "'")}"}
+    else
+      self
+    end
+  end
+end
+
 module Madvertise
   module Logging
 
@@ -177,10 +187,11 @@ module Madvertise
         [ File.basename(file), num ].join(':')
       end
 
-      def add(severity, message)
+      def add(severity, message, attribs={})
         severity = self.class.severities[severity]
         message = "#{called_from}: #{message}"
         message = "[#{@token}] #{message}" if @token
+        message = "#{message} #{attribs.map{|k,v| "#{k}=#{v.clean_quote}"}.join(' ')}" if attribs.any?
         logger.add(severity) { message }
         return nil
       end
