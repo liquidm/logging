@@ -112,7 +112,15 @@ module Madvertise
         # which are disabled.
         self.class.severities.each do |severity, num|
           if num >= logger.level
-            instance_eval("def #{severity}(*args); add(:#{severity}, *args); end", __FILE__, __LINE__)
+            instance_eval(<<-EOM, __FILE__, __LINE__)
+              def #{severity}(*args, &block)
+                if block_given?
+                  add(:#{severity}, yield, *args)
+                else
+                  add(:#{severity}, *args)
+                end
+              end
+            EOM
           else
             instance_eval("def #{severity}(*args); end", __FILE__, __LINE__)
           end
