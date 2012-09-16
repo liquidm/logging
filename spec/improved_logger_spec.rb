@@ -77,12 +77,24 @@ describe ImprovedLogger do
     @logfile.should have_received_message("Reopen")
   end
 
-  it "should log the caller file and line number" do
-    f = File.basename(__FILE__)
-    l = __LINE__ + 2
+  describe :log_caller do
+    it "should log the caller file and line number" do
+      f = File.basename(__FILE__)
+      l = __LINE__ + 3
 
-    @logger.info("Caller test")
-    @logfile.should have_received_message("#{f}:#{l}:")
+      @logger.log_caller = true
+      @logger.info("Caller test")
+      @logfile.should have_received_message("#{f}:#{l}:")
+    end
+
+    it "should not log the caller file and line number" do
+      f = File.basename(__FILE__)
+      l = __LINE__ + 3
+
+      @logger.log_caller = false
+      @logger.info("Caller test")
+      @logfile.should_not have_received_message("#{f}:#{l}:")
+    end
   end
 
   let(:fake_trace) do
@@ -232,7 +244,7 @@ describe ImprovedLogger do
       @logger.puts("a", "b")
       @logfile.should have_received_message("b")
       @logger.puts(["c", "d"])
-      @logfile.should have_received_message("b")
+      @logfile.should have_received_message("d")
       @logger.puts(1, 2, 3)
       @logfile.should have_received_message("3")
     end

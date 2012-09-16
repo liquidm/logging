@@ -98,7 +98,7 @@ module Madvertise
       # @return [Symbol] Current logging level.
       def level
         @severities_inverted ||= self.class.severities.invert
-        @level ||= @severities_inverted[@logger.level]
+        @severities_inverted[@logger.level]
       end
 
       # Set the logging level.
