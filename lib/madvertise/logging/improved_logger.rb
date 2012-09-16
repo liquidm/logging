@@ -28,6 +28,9 @@ module Madvertise
       # Arbitrary token to prefix log messages with.
       attr_accessor :token
 
+      # Log the file/line where the message came from
+      attr_accessor :log_caller
+
       # Log filename for file backend.
       attr_reader :logfile
 
@@ -54,6 +57,7 @@ module Madvertise
       def initialize(backend = STDERR, progname = nil)
         self.progname = progname || File.basename($0)
         self.logger = backend
+        self.log_caller = false
       end
 
       # Get the backend logger.
@@ -200,7 +204,7 @@ module Madvertise
 
       def add(severity, message, attribs={})
         severity = self.class.severities[severity]
-        message = "#{called_from}: #{message}"
+        message = "#{called_from}: #{message}" if @log_caller
         message = "[#{@token}] #{message}" if @token
         message = "#{message} #{attribs.map{|k,v| "#{k}=#{v.clean_quote}"}.join(' ')}" if attribs.any?
         logger.add(severity) { message }
