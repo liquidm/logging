@@ -64,6 +64,13 @@ describe ImprovedLogger do
     @logfile.should have_received_message(/key=value test="with space"/)
   end
 
+  it "should support lazy-evaluation via blocks" do
+    @logger.debug { "debug message" }
+    @logfile.should have_received_message(/debug message/)
+    @logger.debug { ["debug message", {key: "value"}] }
+    @logfile.should have_received_message(/debug message.*key=value/)
+  end
+
   it "should accept a different backend" do
     l = Logger.new('/dev/null')
     @logger.logger = l

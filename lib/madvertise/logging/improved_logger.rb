@@ -119,7 +119,7 @@ module Madvertise
             instance_eval(<<-EOM, __FILE__, __LINE__)
               def #{severity}(*args, &block)
                 if block_given?
-                  add(:#{severity}, yield, *args)
+                  add(:#{severity}, *yield)
                 else
                   add(:#{severity}, *args)
                 end
