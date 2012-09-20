@@ -122,17 +122,12 @@ describe ImprovedLogger do
 
     context "with exception object" do
       before { @logger.exception(exc) }
-      it { should have_received_message("EXCEPTION: Test error") }
+      it { should have_received_message("exception class=RuntimeError reason=\"Test error\"") }
     end
 
     context "with exception object and prefix" do
       before { @logger.exception(exc, "app failed to foo") }
       it { should have_received_message("app failed to foo") }
-    end
-
-    context "without exception object" do
-      before { @logger.exception("not an exception object") }
-      it { should_not have_received_message("EXCEPTION:") }
     end
   end
 
