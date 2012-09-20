@@ -141,14 +141,15 @@ module Madvertise
 
       # Log an exception with fatal level.
       #
-      # @param [Exception, String] exc  The exception to log. If exc is a
-      #   String no backtrace will be generated.
-      # @param [String] prefix  Additional message to log.
-      def exception(exc, prefix=nil)
-        msg = "EXCEPTION"
-        msg << ": #{prefix}" if prefix
-        msg << ": #{exc.message}: #{clean_trace(exc.backtrace)}" if exc.is_a?(::Exception)
-        fatal(msg)
+      # @param [Exception] exc  The exception to log.
+      # @param [String] message  Additional reason to log.
+      def exception(exc, message=nil)
+        fatal("exception", {
+          class: exc.class,
+          reason: exc.message,
+          message: message,
+          backtrace: clean_trace(exc.backtrace)
+        })
       end
 
       # Save the current token and associate it with obj#object_id.
