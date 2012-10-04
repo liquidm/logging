@@ -25,9 +25,9 @@ module Madvertise
       #
       # @private
       def method_missing(name, *args)
-        @loggers.each do |logger|
+        @loggers.map do |logger|
           logger.send(name, *args)
-        end
+        end.first
       end
     end
   end
