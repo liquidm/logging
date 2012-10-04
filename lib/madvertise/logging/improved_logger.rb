@@ -97,8 +97,7 @@ module Madvertise
       #
       # @return [Symbol] Current logging level.
       def level
-        @severities_inverted ||= self.class.severities.invert
-        @severities_inverted[@logger.level]
+        @logger.level
       end
 
       # Set the logging level.
@@ -204,7 +203,7 @@ module Madvertise
       end
 
       def add(severity, message, attribs={})
-        severity = self.class.severities[severity]
+        severity = severity.is_a?(Symbol) ? self.class.severities[severity] : severity
         message = "#{called_from}: #{message}" if @log_caller
         message = "[#{@token}] #{message}" if @token
         message = "#{message} #{attribs.map{|k,v| "#{k}=#{v.to_s.clean_quote}"}.join(' ')}" if attribs.any?
