@@ -151,6 +151,15 @@ module Madvertise
         })
       end
 
+      def add(severity, message, attribs={})
+        severity = severity.is_a?(Symbol) ? self.class.severities[severity] : severity
+        message = "#{called_from}: #{message}" if @log_caller
+        message = "[#{@token}] #{message}" if @token
+        message = "#{message} #{attribs.map{|k,v| "#{k}=#{v.to_s.clean_quote}"}.join(' ')}" if attribs.any?
+        logger.add(severity) { message }
+        return nil
+      end
+
       # Save the current token and associate it with obj#object_id.
       def save_token(obj)
         if @token
@@ -200,15 +209,6 @@ module Madvertise
 
         file, num, _ = location.split(':')
         [ File.basename(file), num ].join(':')
-      end
-
-      def add(severity, message, attribs={})
-        severity = severity.is_a?(Symbol) ? self.class.severities[severity] : severity
-        message = "#{called_from}: #{message}" if @log_caller
-        message = "[#{@token}] #{message}" if @token
-        message = "#{message} #{attribs.map{|k,v| "#{k}=#{v.to_s.clean_quote}"}.join(' ')}" if attribs.any?
-        logger.add(severity) { message }
-        return nil
       end
 
       def create_backend
