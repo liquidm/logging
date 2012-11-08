@@ -123,9 +123,14 @@ module Madvertise
                   add(:#{severity}, *args)
                 end
               end
+
+              def #{severity}?
+                true
+              end
             EOM
           else
             instance_eval("def #{severity}(*args); end", __FILE__, __LINE__)
+            instance_eval("def #{severity}?; false; end", __FILE__, __LINE__)
           end
         end
       end
