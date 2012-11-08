@@ -1,5 +1,6 @@
 require 'logger'
 require 'stringio'
+require 'benchmark'
 
 require 'madvertise/logging/improved_io'
 
@@ -156,7 +157,18 @@ module Madvertise
         })
       end
 
-      def add(severity, message, attribs={})
+      # Log a realtime benchmark
+      #
+      # @param [String] msg  The log message
+      # @param [String,Symbol] key The realtime key
+      def realtime(severity, msg, attribs = {}, &block)
+        result = nil
+        rt = Benchmark.realtime { result = yield }
+        add(severity, msg, attribs.merge({rt: rt}))
+        return result
+      end
+
+      def add(severity, message, attribs = {})
         severity = severity.is_a?(Symbol) ? self.class.severities[severity] : severity
         message = "#{called_from}: #{message}" if @log_caller
         message = "[#{@token}] #{message}" if @token
