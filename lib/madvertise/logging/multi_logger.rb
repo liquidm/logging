@@ -24,9 +24,9 @@ module Madvertise
       # Delegate all method calls to all attached loggers.
       #
       # @private
-      def method_missing(name, *args)
+      def method_missing(name, *args, &block)
         @loggers.map do |logger|
-          logger.send(name, *args)
+          logger.send(name, *args, &block)
         end.first
       end
     end
