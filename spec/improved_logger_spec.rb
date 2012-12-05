@@ -305,6 +305,37 @@ describe ImprovedLogger do
     end
   end
 
+  context "document backend" do
+    before { @logger = ImprovedLogger.new(:document) }
+
+    before do
+      @msg = "test"
+
+      @now = Time.now
+      Time.stub(:now).and_return(@now)
+
+      @expected = {
+        severity: Logger::INFO,
+        time: @now,
+        progname: "rspec",
+        message: @msg
+      }
+    end
+
+    it "should store all messages as documents" do
+      @logger.info(@msg)
+      @logger.messages.first.should == @expected
+    end
+
+    it "should add custom attributes" do
+      attrs = {txid: 1234}
+      @logger.logger.attrs = attrs
+      @logger.info(@msg)
+      @logger.messages.first.should == attrs.merge(@expected)
+    end
+
+  end
+
   context "syslog backend" do
     before { @logger = ImprovedLogger.new(:syslog) }
     its(:sync) { should == true }

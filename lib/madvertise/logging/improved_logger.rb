@@ -3,6 +3,7 @@ require 'stringio'
 require 'benchmark'
 
 require 'madvertise/logging/improved_io'
+require 'madvertise/logging/document_logger'
 
 class String
   def clean_quote
@@ -94,11 +95,18 @@ module Madvertise
         @logfile.string if @backend == :buffer
       end
 
+      # Retrieve collected messages in case this instance is a document logger.
+      #
+      # @return [Array] An array of logged messages.
+      def messages
+        logger.messages if @backend == :document
+      end
+
       # Get the current logging level.
       #
       # @return [Symbol] Current logging level.
       def level
-        @logger.level
+        logger.level
       end
 
       # Set the logging level.
@@ -236,6 +244,8 @@ module Madvertise
           create_syslog_backend
         when :buffer
           create_buffer_backend
+        when :document
+          create_document_backend
         when String
           create_file_backend
         when IO
@@ -260,6 +270,13 @@ module Madvertise
       def create_buffer_backend
         @logfile = StringIO.new
         create_logger
+      end
+
+      def create_document_backend
+        DocumentLogger.new.tap do |logger|
+          logger.formatter = Formatter.new
+          logger.progname = progname
+        end
       end
 
       def create_io_backend
