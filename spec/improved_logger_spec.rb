@@ -316,7 +316,7 @@ describe ImprovedLogger do
 
       @expected = {
         severity: Logger::INFO,
-        time: @now,
+        time: @now.to_f,
         progname: "rspec",
         message: @msg
       }
