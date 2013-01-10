@@ -37,7 +37,7 @@ module Madvertise
 
         @messages << @attrs.merge({
           severity: severity,
-          time: Time.now,
+          time: Time.now.to_f,
           progname: progname,
           message: message,
         })
