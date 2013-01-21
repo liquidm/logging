@@ -218,6 +218,7 @@ module Madvertise
       #
       # @private
       def clean_trace(trace)
+        return unless trace
         trace.reject do |line|
           line =~ /(gems|vendor)\/madvertise-logging/
         end
