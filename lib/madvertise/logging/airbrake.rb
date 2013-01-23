@@ -8,12 +8,10 @@ module Madvertise
       # @param [Exception] exc  The exception to log.
       # @param [String] message  Additional reason to log.
       def exception(exc, message = nil, attribs = {})
-        Airbrake.notify_or_ignore(exc, attribs.merge({
-          error_class: exc.class,
-          error_message: message,
-          reason: exc.message,
-          backtrace: clean_trace(exc.backtrace)
-        }))
+        Airbrake.notify_or_ignore(exc, {
+          :error_message => message,
+          :cgi_data => ENV.to_hash,
+        }.merge(attribs))
       end
     end
   end
