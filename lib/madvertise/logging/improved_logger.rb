@@ -157,12 +157,12 @@ module Madvertise
       # @param [Exception] exc  The exception to log.
       # @param [String] message  Additional reason to log.
       def exception(exc, message = nil, attribs = {})
-        fatal("exception", attribs.merge({
+        fatal("exception", {
           class: exc.class,
           reason: exc.message,
           message: message,
           backtrace: clean_trace(exc.backtrace)
-        }))
+        }.merge(attribs))
       end
 
       # Log a realtime benchmark
