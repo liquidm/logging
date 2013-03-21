@@ -85,12 +85,12 @@ describe ImprovedLogger do
 
     it "logs an exception object" do
       logger.exception(exc)
-      subject.last[:message].should == "exception class=RuntimeError reason=\"Test error\" message= backtrace=\"['/home/jdoe/app/libexec/app.rb:1:in `foo'']\""
+      subject.last[:message].should match(%r{exception class=RuntimeError reason=\"Test error\" message= backtrace=\"\['/home/jdoe/app/libexec/app\.rb:1:in `foo''\]\"})
     end
 
     it "logs an exception object and prefix" do
       logger.exception(exc, "app failed to foo")
-      subject.last[:message].should == "exception class=RuntimeError reason=\"Test error\" message=\"app failed to foo\" backtrace=\"['/home/jdoe/app/libexec/app.rb:1:in `foo'']\""
+      subject.last[:message].should match(%r{exception class=RuntimeError reason=\"Test error\" message=\"app failed to foo\" backtrace=\"\['/home/jdoe/app/libexec/app\.rb:1:in `foo''\]\"})
     end
   end
 
