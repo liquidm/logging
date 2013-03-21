@@ -162,7 +162,7 @@ module Madvertise
           reason: exc.message,
           message: message,
           backtrace: clean_trace(exc.backtrace)
-        }.merge(attribs))
+        }.merge(attribs).merge(called_from))
       end
 
       # Log a realtime benchmark
