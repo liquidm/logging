@@ -178,10 +178,16 @@ module Madvertise
 
       def add(severity, message, attribs = {})
         severity = severity.is_a?(Symbol) ? self.class.severities[severity] : severity
-        message = "#{called_from}: #{message}" if @log_caller
-        message = "[#{@token}] #{message}" if @token
-        message = "#{message} #{attribs.map{|k,v| "#{k}=#{v.to_s.clean_quote}"}.join(' ')}" if attribs.any?
+
+        attribs.merge!(called_from) if @log_caller
+        attribs.merge!(token: @token) if @token
+        attribs = attribs.map do |k,v|
+          "#{k}=#{v.to_s.clean_quote}"
+        end.join(' ')
+
+        message = "#{message} #{attribs}" if attribs.length > 0
         logger.add(severity) { message }
+
         return nil
       end
 
@@ -233,8 +239,8 @@ module Madvertise
           line.match(/(improved_logger|multi_logger)\.rb/).nil?
         end
 
-        file, num, _ = location.split(':')
-        [ File.basename(file), num ].join(':')
+        file, line, _ = location.split(':')
+        { :file => file, :line => line }
       end
 
       def create_backend

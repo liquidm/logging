@@ -1,106 +1,71 @@
 require File.dirname(__FILE__) + '/spec_helper'
 
-require 'tempfile'
-
-include Madvertise::Logging
-
-RSpec::Matchers.define :have_received_message do |expected|
-  match do |actual|
-    @last = IO.readlines(actual).last rescue nil
-    @last ? @last.match(Regexp.new(expected)) : false
-  end
-
-  failure_message_for_should do |actual|
-    "expected #{@last.inspect} to contain #{expected}"
-  end
-
-  failure_message_for_should_not do |actual|
-    "expected #{@last.inspect} to not contain #{expected}"
-  end
-end
-
 describe ImprovedLogger do
 
-  before(:all) do
-    Tempfile.new("spec").tap do |tmpfile|
-      @logfile = tmpfile.path
-      tmpfile.close
-    end
-  end
+  let(:logger) { ImprovedLogger.new(:document) }
 
-  after(:all) do
-    File.unlink(@logfile) rescue nil
-  end
+  before(:each) { logger.level = :debug }
 
-  before(:each) do
-    File.unlink(@logfile) rescue nil
-    @logger = ImprovedLogger.new(@logfile)
-    @logger.level = :debug
-  end
-
-  subject { @logger }
-
-  it { should be_a IO }
-  its(:logger) { should_not be_nil }
+  subject { logger.messages }
 
   ImprovedLogger.severities.keys.each do |level|
     describe level do
-      subject { @logfile }
-      before { @logger.send(level, "test") }
+      before { logger.send(level, "testing #{level}") }
       let(:prefix) { level == :unknown ? "ANY" : level.to_s.upcase }
-      it { should have_received_message(/\[#{prefix}\].*test/) }
+      it "logs #{level} messages" do
+        subject.last[:message].should == "testing #{level}"
+      end
     end
   end
 
-  it "should log info level messages with write and << compat methods" do
-    @logger << "Info test1"
-    @logfile.should have_received_message(/\[INFO\].*Info test1/)
-    @logger.write("Info test2")
-    @logfile.should have_received_message(/\[INFO\].*Info test2/)
+  it "logs info level messages with <<" do
+    logger << "Info test <<"
+    subject.last[:message].should == "Info test <<"
   end
 
-  it "should support additional attributes" do
-    @logger.info("foo", key: "value", test: "with space")
-    @logfile.should have_received_message(/key=value test="with space"/)
+  it "logs info level messages with write" do
+    logger.write("Info test write")
+    subject.last[:message].should == "Info test write"
   end
 
-  it "should support lazy-evaluation via blocks" do
-    @logger.debug { "debug message" }
-    @logfile.should have_received_message(/debug message/)
-    @logger.debug { ["debug message", {key: "value"}] }
-    @logfile.should have_received_message(/debug message.*key=value/)
+  it "supports additional attributes" do
+    logger.info("foo", key: "value", test: "with space")
+    subject.last[:message].should == 'foo key=value test="with space"'
   end
 
-  it "should accept a different backend" do
+  it "supports lazy-evaluation via blocks" do
+    logger.debug { "debug message" }
+    subject.last[:message].should == "debug message"
+  end
+
+  it "supports lazy-evaluation with attributes" do
+    logger.debug { ["debug message", {key: "value"}] }
+    subject.last[:message].should == "debug message key=value"
+  end
+
+  it "accepts a different backend" do
     l = Logger.new('/dev/null')
-    @logger.logger = l
-    @logger.logger.should == l
-  end
-
-  it "should support reopening log files" do
-    @logger.close
-    FileUtils.rm(@logfile)
-    @logger.info('Reopen')
-    @logfile.should have_received_message("Reopen")
+    logger.logger = l
+    logger.logger.should == l
   end
 
   describe :log_caller do
-    it "should log the caller file and line number" do
-      f = File.basename(__FILE__)
+    it "logs the caller file and line number" do
+      f = __FILE__
       l = __LINE__ + 3
 
-      @logger.log_caller = true
-      @logger.info("Caller test")
-      @logfile.should have_received_message("#{f}:#{l}:")
+      logger.log_caller = true
+      logger.info("Caller test")
+      subject.last[:message].should == "Caller test file=#{f} line=#{l}"
     end
 
-    it "should not log the caller file and line number" do
+    it "does not log the caller file and line number" do
       f = File.basename(__FILE__)
       l = __LINE__ + 3
 
-      @logger.log_caller = false
-      @logger.info("Caller test")
-      @logfile.should_not have_received_message("#{f}:#{l}:")
+      logger.log_caller = false
+      logger.info("Caller test")
+      subject.last[:message].should_not == "Caller test file=#{f} line=#{l}"
     end
   end
 
@@ -118,44 +83,39 @@ describe ImprovedLogger do
       end
     end
 
-    subject { @logfile }
-
-    context "with exception object" do
-      before { @logger.exception(exc) }
-      it { should have_received_message("exception class=RuntimeError reason=\"Test error\"") }
+    it "logs an exception object" do
+      logger.exception(exc)
+      subject.last[:message].should == "exception class=RuntimeError reason=\"Test error\" message= backtrace=\"['/home/jdoe/app/libexec/app.rb:1:in `foo'']\""
     end
 
-    context "with exception object and prefix" do
-      before { @logger.exception(exc, "app failed to foo") }
-      it { should have_received_message("app failed to foo") }
+    it "logs an exception object and prefix" do
+      logger.exception(exc, "app failed to foo")
+      subject.last[:message].should == "exception class=RuntimeError reason=\"Test error\" message=\"app failed to foo\" backtrace=\"['/home/jdoe/app/libexec/app.rb:1:in `foo'']\""
     end
   end
 
   describe :clean_trace do
-    subject { @logger.clean_trace(fake_trace) }
+    subject { logger.clean_trace(fake_trace) }
     it { should include("/home/jdoe/app/libexec/app.rb:1:in `foo'") }
     it { should_not include("/usr/lib/ruby/gems/1.8/gems/madvertise-logging-0.1.0/lib/madvertise/logging/improved_logger.rb:42: in `info'") }
   end
 
   it "should support silencing" do
-    @logger.silence do |logger|
+    logger.silence do |logger|
       logger.info "This should never be logged"
     end
 
-    @logfile.should_not have_received_message("This should never be logged")
-
-    @logger.info "This should be logged"
-    @logfile.should have_received_message("This should be logged")
+    subject.last.should be_nil
   end
 
   it "should not discard messages if silencer is disabled globally" do
     ImprovedLogger.silencer = false
 
-    @logger.silence do |logger|
+    logger.silence do |logger|
       logger.info "This should actually be logged"
     end
 
-    @logfile.should have_received_message("This should actually be logged")
+    subject.last[:message].should == "This should actually be logged"
 
     ImprovedLogger.silencer = true
   end
@@ -163,13 +123,13 @@ describe ImprovedLogger do
   it "should support a token" do
     token = "3d5e27f7-b97c-4adc-b1fd-adf1bd4314e0"
 
-    @logger.token = token
-    @logger.info "This should include a token"
-    @logfile.should have_received_message(token)
+    logger.token = token
+    logger.info "This should include a token"
+    subject.last[:message].should match(token)
 
-    @logger.token = nil
-    @logger.info "This should not include a token"
-    @logfile.should_not have_received_message(token)
+    logger.token = nil
+    logger.info "This should not include a token"
+    subject.last[:message].should_not match(token)
   end
 
   it "should support save/restore on tokens" do
@@ -178,34 +138,34 @@ describe ImprovedLogger do
 
     obj = Object.new
 
-    @logger.token = token1
-    @logger.info "This should include token1"
-    @logfile.should have_received_message(token1)
+    logger.token = token1
+    logger.info "This should include token1"
+    subject.last[:message].should match(token1)
 
-    @logger.save_token(obj)
-    @logger.token = token2
-    @logger.info "This should include token2"
-    @logfile.should have_received_message(token2)
+    logger.save_token(obj)
+    logger.token = token2
+    logger.info "This should include token2"
+    subject.last[:message].should match(token2)
 
-    @logger.restore_token(obj)
-    @logger.info "This should include token1"
-    @logfile.should have_received_message(token1)
+    logger.restore_token(obj)
+    logger.info "This should include token1"
+    subject.last[:message].should match(token1)
 
-    @logger.token = nil
-    @logger.info "This should not include a token"
-    @logfile.should_not have_received_message(token1)
-    @logfile.should_not have_received_message(token2)
+    logger.token = nil
+    logger.info "This should not include a token"
+    subject.last[:message].should_not match(token1)
+    subject.last[:message].should_not match(token2)
   end
 
   it "should fall back to stderr if logfile is not writable" do
     $stderr.should_receive(:write).with(/not writable.*STDERR/)
 
     @logfile = "/not/writable/spec.log"
-    @logger = ImprovedLogger.new(@logfile)
-    @logger.level = :debug
+    logger = ImprovedLogger.new(@logfile)
+    logger.level = :debug
 
     $stderr.should_receive(:write).with(/test/)
-    @logger.info "test"
+    logger.info "test"
   end
 
   it "should fallback to standard logger if syslogger gem is missing" do
@@ -213,50 +173,33 @@ describe ImprovedLogger do
     $:.replace($: - syslogger_paths)
 
     $stderr.should_receive(:write).with(/reverting to STDERR/)
-    @logger = ImprovedLogger.new(:syslog)
-    @logger.logger.should be_instance_of(Logger)
+    logger = ImprovedLogger.new(:syslog)
+    logger.logger.should be_instance_of(Logger)
 
     $:.replace($: + syslogger_paths)
   end
 
   context "should behave like write-only IO and" do
-    it "should close on close_write" do
-      @logger.should_receive(:close)
-      @logger.close_write
-    end
+    subject { logger }
 
-    its(:flush) { should == @logger }
-    its(:set_encoding) { should == @logger }
+    it { should be_a IO }
+    its(:logger) { should_not be_nil }
+    its(:flush) { should == logger }
+    its(:set_encoding) { should == logger }
     its(:sync) { should == true }
     its(:tty?) { should == false }
 
-    it "should support printf" do
-      @logger.printf("%.2f %s", 1.12345, "foo")
-      @logfile.should have_received_message("1.12 foo")
-    end
-
-    it "should support print" do
-      $,, old = ' ', $,
-      @logger.print("foo", "bar", 123, ["baz", 345])
-      @logfile.should have_received_message("foo bar 123 baz 345")
-      $, = old
-    end
-
-    it "should support puts" do
-      @logger.puts("a", "b")
-      @logfile.should have_received_message("b")
-      @logger.puts(["c", "d"])
-      @logfile.should have_received_message("d")
-      @logger.puts(1, 2, 3)
-      @logfile.should have_received_message("3")
+    it "should close on close_write" do
+      logger.should_receive(:close)
+      logger.close_write
     end
 
     it "should not implement closed?" do
-      expect { @logger.closed? }.to raise_error(NotImplementedError)
+      expect { logger.closed? }.to raise_error(NotImplementedError)
     end
 
     it "should not implement sync=" do
-      expect { @logger.sync = false }.to raise_error(NotImplementedError)
+      expect { logger.sync = false }.to raise_error(NotImplementedError)
     end
 
     it "should implement readbyte, readchar, readline" do
@@ -265,8 +208,8 @@ describe ImprovedLogger do
         :readchar => :getc,
         :readline => :gets,
       }.each do |m, should|
-        @logger.should_receive(should)
-        expect { @logger.send(m) }.to raise_error(IOError)
+        logger.should_receive(should)
+        expect { logger.send(m) }.to raise_error(IOError)
       end
     end
 
@@ -290,23 +233,50 @@ describe ImprovedLogger do
       :ungetc
     ].each do |m|
       it "should raise IOError for method #{m}" do
-        expect { @logger.send(m) }.to raise_error(IOError)
+        expect { logger.send(m) }.to raise_error(IOError)
+      end
+    end
+
+    context "print functions" do
+      subject { logger.messages }
+
+      it "should support printf" do
+        logger.printf("%.2f %s", 1.12345, "foo")
+        subject.last[:message].should == "1.12 foo"
+      end
+
+      it "should support print" do
+        $,, old = ' ', $,
+        logger.print("foo", "bar", 123, ["baz", 345])
+        subject.last[:message].should == "foo bar 123 baz 345"
+        $, = old
+      end
+
+      it "should support puts" do
+        logger.puts("a", "b")
+        subject.last[:message].should == "b"
+        logger.puts(["c", "d"])
+        subject.last[:message].should == "d"
+        logger.puts(1, 2, 3)
+        subject.last[:message].should == "3"
       end
     end
   end
 
   context "buffer backend" do
-    before { @logger = ImprovedLogger.new(:buffer) }
+    let(:logger) { ImprovedLogger.new(:buffer) }
+    subject { logger }
+
     its(:sync) { should == false }
 
     it "should support a buffered logger" do
-      @logger.info "test"
-      @logger.buffer.should match(/test/)
+      logger.info "test"
+      logger.buffer.should match(/test/)
     end
   end
 
   context "document backend" do
-    before { @logger = ImprovedLogger.new(:document) }
+    let(:logger) { ImprovedLogger.new(:document) }
 
     before do
       @msg = "test"
@@ -323,21 +293,22 @@ describe ImprovedLogger do
     end
 
     it "should store all messages as documents" do
-      @logger.info(@msg)
-      @logger.messages.first.should == @expected
+      logger.info(@msg)
+      logger.messages.first.should == @expected
     end
 
     it "should add custom attributes" do
       attrs = {txid: 1234}
-      @logger.logger.attrs = attrs
-      @logger.info(@msg)
-      @logger.messages.first.should == attrs.merge(@expected)
+      logger.logger.attrs = attrs
+      logger.info(@msg)
+      logger.messages.first.should == attrs.merge(@expected)
     end
 
   end
 
   context "syslog backend" do
-    before { @logger = ImprovedLogger.new(:syslog) }
+    let(:logger) { ImprovedLogger.new(:syslog) }
+    subject { logger }
     its(:sync) { should == true }
     its(:logger) { should be_instance_of(Syslogger) }
   end
