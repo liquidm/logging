@@ -319,17 +319,36 @@ module Madvertise
       #
       class Formatter
 
-        @format = "%s %s(%d) [%s] %s\n"
+        @format = "%{time} %{progname}(%{pid}) [%{severity}] %{msg}\n"
+        @time_format = "%Y-%m-%d %H:%M:%S.%N"
 
         class << self
           # Format string for log messages.
           attr_accessor :format
+
+          # Format string for timestamps in log messages.
+          attr_accessor :time_format
         end
+
+        RUBY2SYSLOG = {
+          :debug => 7,
+          :info => 6,
+          :warn => 4,
+          :error => 3,
+          :fatal => 2,
+          :unknown => 3,
+        }
 
         # @private
         def call(severity, time, progname, msg)
-          time = time.strftime("%Y-%m-%d %H:%M:%S.%N")
-          self.class.format % [time, progname, $$, severity, msg.to_s]
+          self.class.format % {
+            :time => time.strftime(self.class.time_format),
+            :progname => progname,
+            :pid => $$,
+            :severity => severity,
+            :syslog_severity => RUBY2SYSLOG[severity.downcase.to_sym],
+            :msg => msg.to_s,
+          }
         end
       end
 
