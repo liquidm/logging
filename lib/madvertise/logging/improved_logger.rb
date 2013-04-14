@@ -247,6 +247,10 @@ module Madvertise
         self.close
 
         case @backend
+        when :stdout
+          create_io_backend(STDOUT)
+        when :stderr
+          create_io_backend(STDERR)
         when :syslog
           create_syslog_backend
         when :buffer
@@ -256,7 +260,7 @@ module Madvertise
         when String
           create_file_backend
         when IO
-          create_io_backend
+          create_io_backend(@backend)
         when Logger
           @backend
         else
@@ -286,8 +290,8 @@ module Madvertise
         end
       end
 
-      def create_io_backend
-        @logfile = @backend
+      def create_io_backend(backend)
+        @logfile = backend
         create_logger
       end
 
