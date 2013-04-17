@@ -292,6 +292,7 @@ module Madvertise
 
       def create_io_backend(backend)
         @logfile = backend
+        @logfile.sync = true
         create_logger
       end
 
