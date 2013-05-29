@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |spec|
   spec.name          = "madvertise-logging"
-  spec.version       = "1.0.3"
+  spec.version       = "1.1.0"
   spec.authors       = ["madvertise Mobile Advertising GmbH"]
   spec.email         = ["tech@madvertise.com"]
   spec.description   = %q{Advanced logging classes with buffer backend, transactions, multi logger, etc}

@@ -4,6 +4,7 @@ begin
 
   desc "Run the specs"
   RSpec::Core::RakeTask.new do |t|
+    t.verbose = false
     t.rspec_opts = ['--options', "spec/spec.opts"]
   end
 

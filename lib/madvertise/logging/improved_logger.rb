@@ -114,6 +114,7 @@ module Madvertise
       # @param [Symbol, Fixnum] level  New level as Symbol or Fixnum from Logger class.
       # @return [Fixnum] New level converted to Fixnum from Logger class.
       def level=(level)
+        @console.setThreshold(org.apache.log4j.Level.const_get(level.to_s.upcase.to_sym)) if @console
         logger.level = level.is_a?(Symbol) ? self.class.severities[level] : level
         define_level_methods
       end
@@ -123,7 +124,7 @@ module Madvertise
         # We do this dynamically here, so we can implement a no-op for levels
         # which are disabled.
         self.class.severities.each do |severity, num|
-          if num >= logger.level
+          if num >= level
             instance_eval(<<-EOM, __FILE__, __LINE__)
               def #{severity}(*args, &block)
                 if block_given?
@@ -177,7 +178,7 @@ module Madvertise
       end
 
       def add(severity, message, attribs = {})
-        severity = severity.is_a?(Symbol) ? self.class.severities[severity] : severity
+        severity = severity.is_a?(Symbol) ? severity : self.class.severities.key(severity)
 
         attribs.merge!(called_from) if @log_caller
         attribs.merge!(token: @token) if @token
@@ -186,7 +187,7 @@ module Madvertise
         end.join(' ')
 
         message = "#{message} #{attribs}" if attribs.length > 0
-        logger.add(severity) { message }
+        logger.send(severity) { message }
 
         return nil
       end
@@ -247,6 +248,10 @@ module Madvertise
         self.close
 
         case @backend
+        when :log4j
+          create_log4j_backend
+        when :ruby
+          create_ruby_logger(STDOUT)
         when :stdout
           create_io_backend(STDOUT)
         when :stderr
@@ -310,7 +315,40 @@ module Madvertise
       end
 
       def create_logger
-        Logger.new(@logfile).tap do |logger|
+        case RUBY_PLATFORM
+        when 'java'
+          create_log4j_logger
+        else
+          create_ruby_logger(@logfile)
+        end
+      end
+
+      def create_log4j_logger
+        begin
+          require 'log4jruby'
+          Log4jruby::Logger.get($0, :tracing => true, :level => :debug).tap do |logger|
+            configure_log4j(logger)
+          end
+        rescue LoadError
+          self.logger = :ruby
+          error("Couldn't load log4jruby gem, falling back to pure ruby Logger")
+        end
+      end
+
+      def configure_log4j(logger)
+        @console = org.apache.log4j.ConsoleAppender.new
+        @console.setLayout(org.apache.log4j.PatternLayout.new(Formatter.log4j_format))
+        @console.setThreshold(org.apache.log4j.Level::DEBUG)
+        @console.activateOptions
+
+        org.apache.log4j.Logger.getRootLogger.tap do |root|
+          root.getLoggerRepository.resetConfiguration
+          root.addAppender(@console)
+        end
+      end
+
+      def create_ruby_logger(io)
+        Logger.new(io).tap do |logger|
           logger.formatter = Formatter.new
           logger.progname = progname
         end
@@ -325,11 +363,13 @@ module Madvertise
       class Formatter
 
         @format = "%{time} %{progname}(%{pid}) [%{severity}] %{msg}\n"
+        @log4j_format = "%d %c(%t) [%p] %m%n"
         @time_format = "%Y-%m-%d %H:%M:%S.%N"
 
         class << self
           # Format string for log messages.
           attr_accessor :format
+          attr_accessor :log4j_format
 
           # Format string for timestamps in log messages.
           attr_accessor :time_format
