@@ -325,6 +325,7 @@ module Madvertise
 
       def create_log4j_logger
         begin
+          require 'log4j'
           require 'log4jruby'
           Log4jruby::Logger.get($0, :tracing => true, :level => :debug).tap do |logger|
             configure_log4j(logger)
