@@ -114,8 +114,8 @@ module Madvertise
       # @param [Symbol, Fixnum] level  New level as Symbol or Fixnum from Logger class.
       # @return [Fixnum] New level converted to Fixnum from Logger class.
       def level=(level)
-        @console.setThreshold(org.apache.log4j.Level.const_get(level.to_s.upcase.to_sym)) if @console
         logger.level = level.is_a?(Symbol) ? self.class.severities[level] : level
+        configure_log4j(logger)
         define_level_methods
       end
 
@@ -327,7 +327,8 @@ module Madvertise
         begin
           require 'log4j'
           require 'log4jruby'
-          Log4jruby::Logger.get($0, :tracing => true, :level => :debug).tap do |logger|
+          Log4jruby::Logger.get($0).tap do |logger|
+            @backend = :log4j
             configure_log4j(logger)
           end
         rescue LoadError
@@ -337,9 +338,11 @@ module Madvertise
       end
 
       def configure_log4j(logger)
+        return unless @backend == :log4j
+
         @console = org.apache.log4j.ConsoleAppender.new
         @console.setLayout(org.apache.log4j.PatternLayout.new(Formatter.log4j_format))
-        @console.setThreshold(org.apache.log4j.Level::DEBUG)
+        @console.setThreshold(org.apache.log4j.Level.const_get(self.class.severities.key(logger.level).to_s.upcase.to_sym))
         @console.activateOptions
 
         org.apache.log4j.Logger.getRootLogger.tap do |root|
