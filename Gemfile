@@ -5,6 +5,7 @@ gemspec
 gem 'syslogger', :require => false
 
 group :development, :test do
+  gem 'fuubar'
   gem 'rake'
   gem 'reek'
   gem 'rspec'

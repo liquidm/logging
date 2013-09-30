@@ -249,7 +249,7 @@ module Madvertise
 
         case @backend
         when :log4j
-          create_log4j_backend
+          create_log4j_logger
         when :ruby
           create_ruby_logger(STDOUT)
         when :stdout
@@ -315,30 +315,21 @@ module Madvertise
       end
 
       def create_logger
-        case RUBY_PLATFORM
-        when 'java'
-          create_log4j_logger
-        else
-          create_ruby_logger(@logfile)
-        end
+        create_ruby_logger(@logfile)
       end
 
       def create_log4j_logger
-        begin
-          require 'log4j'
-          require 'log4jruby'
-          Log4jruby::Logger.get($0).tap do |logger|
-            @backend = :log4j
-            configure_log4j(logger)
-          end
-        rescue LoadError
-          self.logger = :ruby
-          error("Couldn't load log4jruby gem, falling back to pure ruby Logger")
+        Log4jruby::Logger.get($0).tap do |logger|
+          @backend = :log4j
+          configure_log4j(logger)
         end
       end
 
       def configure_log4j(logger)
-        return unless @backend == :log4j
+        return unless RUBY_PLATFORM == 'java'
+
+        require 'log4j'
+        require 'log4jruby'
 
         @console = org.apache.log4j.ConsoleAppender.new
         @console.setLayout(org.apache.log4j.PatternLayout.new(Formatter.log4j_format))
