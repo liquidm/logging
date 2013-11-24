@@ -5,7 +5,7 @@ require 'simplecov'
 SimpleCov.start
 
 $:.unshift(File.dirname(__FILE__) + '/../lib')
-require 'madvertise-logging'
+require 'liquid-logging'
 
 RSpec.configure do |config|
   # == Mock Framework

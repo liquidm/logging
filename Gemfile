@@ -3,12 +3,8 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'syslogger', :require => false
+gem 'liquid-ext', path: '../ext'
 
 group :development, :test do
-  gem 'fuubar'
-  gem 'rake'
-  gem 'reek'
-  gem 'rspec'
-  gem 'simplecov'
-  gem 'yard'
+  gem 'liquid-development'
 end

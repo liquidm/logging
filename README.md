@@ -1,16 +1,18 @@
-# Madvertise::Logging
+# Liquid Logging
 
-The madvertise-logging gem is a collection of classes for logging related
-tasks. The main class (`ImprovedLogger`) is an improved version of DaemonKits
+The liquid-logging gem is a collection of classes for logging related tasks.
+The main class (`ImprovedLogger`) is an improved version of DaemonKits
 `AbstractLogger` class including token support, buffer backend and more.
 
-[![Build Status](https://secure.travis-ci.org/madvertise/logging.png)](http://travis-ci.org/madvertise/logging)
+[![Build Status](https://secure.travis-ci.org/liquidm/logging.png)](http://travis-ci.org/liquidm/logging)
+[![Code Climate](https://codeclimate.com/github/liquidm/logging.png)](https://codeclimate.com/github/liquidm/logging)
+[![Dependency Status](https://gemnasium.com/liquidm/logging.png)](https://gemnasium.com/liquidm/logging)
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
-    gem 'madvertise-logging'
+    gem 'liquid-logging'
 
 And then execute:
 
@@ -18,15 +20,15 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install madvertise-logging
+    $ gem install liquid-logging
 
 ## Usage
 
-Please refer to the [API documentation](http://rubydoc.info/gems/madvertise-logging/frames).
+Please refer to the [API documentation](http://rubydoc.info/gems/liquid-logging/frames).
 
 ## Contributing
 
-1. Fork it
+1. Fork it ( http://github.com/liquidm/logging/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Added some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)

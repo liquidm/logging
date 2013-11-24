@@ -2,8 +2,8 @@ require 'logger'
 require 'stringio'
 require 'benchmark'
 
-require 'madvertise/logging/improved_io'
-require 'madvertise/logging/document_logger'
+require 'liquid/logging/improved_io'
+require 'liquid/logging/document_logger'
 
 class String
   def clean_quote
@@ -15,7 +15,7 @@ class String
   end
 end
 
-module Madvertise
+module Liquid
   module Logging
 
     ##
@@ -220,20 +220,20 @@ module Madvertise
         end
       end
 
-      # Remove references to the madvertise-logging gem from exception
+      # Remove references to the liquid-logging gem from exception
       # backtraces.
       #
       # @private
       def clean_trace(trace)
         return unless trace
         trace.reject do |line|
-          line =~ /(gems|vendor)\/madvertise-logging/
+          line =~ /(gems|vendor)\/liquid-logging/
         end
       end
 
       private
 
-      # Return the first callee outside the madvertise-logging gem. Used in add
+      # Return the first callee outside the liquid-logging gem. Used in add
       # to figure out where in the source code a message has been produced.
       def called_from
         location = caller.detect('unknown:0') do |line|

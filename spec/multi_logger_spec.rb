@@ -1,6 +1,6 @@
 require File.dirname(__FILE__) + '/spec_helper'
 
-include Madvertise::Logging
+include Liquid::Logging
 
 describe MultiLogger do
 

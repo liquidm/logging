@@ -1,4 +1,4 @@
-module Madvertise
+module Liquid
   module Logging
 
     ##

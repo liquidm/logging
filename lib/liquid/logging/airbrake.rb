@@ -1,6 +1,6 @@
 require 'airbrake'
 
-module Madvertise
+module Liquid
   module Logging
     class ImprovedLogger
       # Log an exception with airbrake.

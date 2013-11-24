@@ -72,7 +72,7 @@ describe ImprovedLogger do
   let(:fake_trace) do
     [
       "/home/jdoe/app/libexec/app.rb:1:in `foo'",
-      "/usr/lib/ruby/gems/1.8/gems/madvertise-logging-0.1.0/lib/madvertise/logging/improved_logger.rb:42: in `info'"
+      "/usr/lib/ruby/gems/1.8/gems/liquid-logging-0.1.0/lib/liquid/logging/improved_logger.rb:42: in `info'"
     ]
   end
 
@@ -97,7 +97,7 @@ describe ImprovedLogger do
   describe :clean_trace do
     subject { logger.clean_trace(fake_trace) }
     it { should include("/home/jdoe/app/libexec/app.rb:1:in `foo'") }
-    it { should_not include("/usr/lib/ruby/gems/1.8/gems/madvertise-logging-0.1.0/lib/madvertise/logging/improved_logger.rb:42: in `info'") }
+    it { should_not include("/usr/lib/ruby/gems/1.8/gems/liquid-logging-0.1.0/lib/liquid/logging/improved_logger.rb:42: in `info'") }
   end
 
   it "should support silencing" do
