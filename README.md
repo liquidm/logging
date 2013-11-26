@@ -4,6 +4,7 @@ The liquid-logging gem is a collection of classes for logging related tasks.
 The main class (`ImprovedLogger`) is an improved version of DaemonKits
 `AbstractLogger` class including token support, buffer backend and more.
 
+[![Gem Version](https://badge.fury.io/rb/liquid-logging.png)](http://badge.fury.io/rb/liquid-logging)
 [![Build Status](https://secure.travis-ci.org/liquidm/logging.png)](http://travis-ci.org/liquidm/logging)
 [![Code Climate](https://codeclimate.com/github/liquidm/logging.png)](https://codeclimate.com/github/liquidm/logging)
 [![Dependency Status](https://gemnasium.com/liquidm/logging.png)](https://gemnasium.com/liquidm/logging)
