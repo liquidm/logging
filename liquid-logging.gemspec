@@ -2,12 +2,13 @@
 
 Gem::Specification.new do |spec|
   spec.name          = "liquid-logging"
-  spec.version       = "2.0.0"
+  spec.version       = "2.0.1"
   spec.authors       = ["LiquidM, Inc."]
   spec.email         = ["opensource@liquidm.com"]
   spec.description   = %q{Advanced logging classes with buffer backend, transactions, multi logger, etc}
   spec.summary       = %q{Advanced logging classes with buffer backend, transactions, multi logger, etc}
   spec.homepage      = "https://github.com/liquidm/logging"
+  spec.license       = 'MIT'
 
   spec.files         = `git ls-files`.split($/)
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
